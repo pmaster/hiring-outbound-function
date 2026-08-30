@@ -489,6 +489,26 @@ def cmd_pages(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    from .export import DEFAULT_STAGES, export
+
+    settings, roles, db = _bootstrap(args)
+    role = get_role(roles, args.role) if args.role else None
+    stages = args.stage or list(DEFAULT_STAGES)
+    if stages == ["all"]:
+        stages = []
+    default_name = f"{(role.key if role else 'all')}-{args.format}"
+    suffix = "jsonl" if args.format == "jsonl" else "csv"
+    path = Path(args.out) if args.out else settings.export_dir / f"{default_name}.{suffix}"
+    count = export(db, settings, role, path, fmt=args.format, stages=stages, limit=args.limit)
+    print(f"exported {count} candidate(s) to {path}")
+    if args.format == "ats":
+        print("Import it into the applicant tracking system and map the columns.")
+        print("Every importer asks; the names are chosen to be obvious.")
+    db.close()
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role_key = get_role(roles, args.role).key if args.role else None
@@ -618,6 +638,14 @@ def build_parser() -> argparse.ArgumentParser:
     pages = sub.add_parser("pages", help="build the careers page and the job descriptions")
     pages.add_argument("--out", help="output directory (default: site/)")
     pages.set_defaults(func=cmd_pages)
+
+    exp = sub.add_parser("export", help="export candidates for an ATS or a spreadsheet")
+    exp.add_argument("role", nargs="?")
+    exp.add_argument("--format", choices=["ats", "csv", "jsonl"], default="ats")
+    exp.add_argument("--stage", action="append", help="repeatable. 'all' for every stage.")
+    exp.add_argument("--limit", type=int)
+    exp.add_argument("--out", help="output path")
+    exp.set_defaults(func=cmd_export)
 
     rep = sub.add_parser("report", help="funnel, conversion and what to do next")
     rep.add_argument("role", nargs="?")

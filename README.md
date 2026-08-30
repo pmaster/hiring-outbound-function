@@ -50,6 +50,7 @@ comp. Fix what it names, then run it again.
     python3 -m outbound replies sync                    # replies and bounces
     python3 -m outbound bookings sync
     python3 -m outbound bookings triage
+    python3 -m outbound export --format ats            # hand them to the ATS
     python3 -m outbound report
 
 `outbound report` ends with a "Do next" list. Follow that if you forget the

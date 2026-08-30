@@ -111,7 +111,17 @@ email data from a vendor.
    are inside 12 hours, take the call. A late cancellation costs more than ten
    minutes.
 
-6. **Read the report.**
+6. **Hand the good ones over.**
+
+       python3 -m outbound export --format ats
+
+   That writes everyone who replied or booked, with their address, their
+   profile link and the note you wrote about them. Import it into the
+   applicant tracking system so the recruiting team sees one pipeline rather
+   than two. Applying through a posting and being emailed cold are different
+   intake paths and nothing else reconciles them.
+
+7. **Read the report.**
 
        python3 -m outbound report
 
