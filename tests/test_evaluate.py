@@ -114,6 +114,55 @@ class TestAutoMode(unittest.TestCase):
             self.assertEqual(c["review_state"], "approved")
             self.assertTrue(str(c.get("personal_note") or "").strip())
 
+    def test_auto_approve_keeps_a_human_note_over_the_model_draft(self):
+        row = self.db.candidates(self.role.key, stages=["review"])[0]
+        self.db.execute(
+            "UPDATE candidates SET personal_note = ? WHERE id = ?",
+            ("A human wrote this exact line.", row["id"]),
+        )
+
+        class _WithDraft:
+            name = "dryrun"
+
+            def __init__(self, settings=None):
+                pass
+
+            def evaluate(self, brief, candidate):
+                return {"fit": 0.95, "verdict": "strong",
+                        "reasons": ["strong"], "personal_note": "A model draft.",
+                        "disqualify": False, "disqualify_reason": ""}
+
+        with mock.patch("outbound.providers.build", return_value=_WithDraft()):
+            pipeline.evaluate_candidates(self.db, self.settings, self.role)
+        after = self.db.candidate(int(row["id"]))
+        self.assertEqual(after["stage"], "approved")
+        self.assertEqual(
+            after["personal_note"], "A human wrote this exact line.",
+            "an auto-approve must not overwrite a note a person wrote",
+        )
+
+    def test_a_human_noted_candidate_approves_even_with_no_model_note(self):
+        row = self.db.candidates(self.role.key, stages=["review"])[0]
+        self.db.execute(
+            "UPDATE candidates SET personal_note = ? WHERE id = ?",
+            ("A human note.", row["id"]),
+        )
+
+        class _NoNoteStrong:
+            name = "dryrun"
+
+            def __init__(self, settings=None):
+                pass
+
+            def evaluate(self, brief, candidate):
+                return {"fit": 0.95, "verdict": "strong", "reasons": [],
+                        "personal_note": "", "disqualify": False,
+                        "disqualify_reason": ""}
+
+        with mock.patch("outbound.providers.build", return_value=_NoNoteStrong()):
+            pipeline.evaluate_candidates(self.db, self.settings, self.role)
+        self.assertEqual(self.db.candidate(int(row["id"]))["stage"], "approved")
+
     def test_an_auto_approve_with_no_note_falls_back_to_review(self):
         # Force the note empty: the provider returns one, so patch it away.
         real = pipeline.evaluate_candidates

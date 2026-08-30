@@ -267,21 +267,23 @@ def evaluate_candidates(
             continue
 
         db.log_event(int(row["id"]), "ai_evaluate", detail)
-        # The drafted note is stored whatever the mode, so a later hand review
-        # or an auto-approve both have it. It never overwrites a note a person
-        # already wrote.
-        if note and not str(row.get("personal_note") or "").strip():
+        # A note a person wrote wins over the model's draft. The effective note
+        # is the human one if it exists, else the drafted one. The draft is
+        # stored only when there is no human note to keep.
+        existing = str(row.get("personal_note") or "").strip()
+        effective_note = existing or note
+        if note and not existing:
             db.execute(
                 "UPDATE candidates SET personal_note = ? WHERE id = ?", (note, row["id"])
             )
 
         if mode == "auto" and decision == "approve":
-            if not note:
+            if not effective_note:
                 # No note, no email is the rule. Without a specific detail an
                 # auto-approve cannot send, so it goes to review instead.
                 result.bump("approve_without_note_to_review")
                 continue
-            set_review(db, role, int(row["id"]), "approve", note)
+            set_review(db, role, int(row["id"]), "approve", effective_note)
             result.bump("approved")
         elif mode == "auto" and decision == "reject":
             reason = str(verdict.get("disqualify_reason") or "") or f"AI screen: fit {fit:.2f}"
