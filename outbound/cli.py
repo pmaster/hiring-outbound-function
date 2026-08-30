@@ -72,15 +72,57 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     settings, roles = load_all(Path(args.config) if args.config else None)
     role = get_role(roles, args.role) if args.role else None
     problems = preflight(settings, role)
-    if not problems:
+
+    dns_failed = False
+    if getattr(args, "dns", False):
+        from .dnscheck import COMMON_DKIM_SELECTORS, DnsError, check_domain
+
+        domain = str(settings.get("identity.sending_domain", ""))
+        if domain:
+            try:
+                report = check_domain(domain, COMMON_DKIM_SELECTORS)
+                print(report)
+                print()
+                dns_failed = not report.ok
+            except DnsError as exc:
+                print(f"DNS lookup failed for {domain}: {exc}")
+                print()
+                dns_failed = True
+
+    if not problems and not dns_failed:
         print("all checks passed. You can send.")
         return 0
+    if not problems:
+        print("settings and templates are fine. The DNS records are not.")
+        return 1
     fatal = [p for p in problems if p.fatal]
     for problem in problems:
         print(problem)
     print()
     print(f"{len(fatal)} blocking, {len(problems) - len(fatal)} to confirm.")
-    return 1 if fatal else 0
+    return 1 if (fatal or dns_failed) else 0
+
+
+def cmd_dns(args: argparse.Namespace) -> int:
+    """Check SPF, DKIM, DMARC and MX on the sending domain."""
+    from .dnscheck import COMMON_DKIM_SELECTORS, check_domain
+
+    settings, _roles = load_all(Path(args.config) if args.config else None)
+    domain = args.domain or str(settings.get("identity.sending_domain", ""))
+    if not domain:
+        raise OutboundError("no domain. Set identity.sending_domain or pass one.")
+    selectors = list(args.selector or []) + list(COMMON_DKIM_SELECTORS)
+    report = check_domain(domain, selectors)
+    print(report)
+    print()
+    if report.ok:
+        print("All four records are in place. This is necessary, not sufficient:")
+        print("send one seed email to Gmail and one to Outlook and read the raw")
+        print("headers before you trust it.")
+        return 0
+    print("Fix the failures above before sending. Bad records are the most")
+    print("common reason cold email disappears, and nothing tells you.")
+    return 1
 
 
 def cmd_roles(args: argparse.Namespace) -> int:
@@ -392,7 +434,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", help="check everything that must be true before a send")
     doctor.add_argument("role", nargs="?")
+    doctor.add_argument("--dns", action="store_true", help="also resolve the sending domain's records")
     doctor.set_defaults(func=cmd_doctor)
+
+    dns = sub.add_parser("dns", help="check SPF, DKIM, DMARC and MX on the sending domain")
+    dns.add_argument("domain", nargs="?")
+    dns.add_argument("--selector", action="append", help="extra DKIM selector to try")
+    dns.set_defaults(func=cmd_dns)
 
     sub.add_parser("roles", help="list the roles").set_defaults(func=cmd_roles)
 

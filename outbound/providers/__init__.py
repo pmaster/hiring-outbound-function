@@ -68,6 +68,7 @@ def build(kind: str, name: str, settings: Any) -> Any:
         rocketreach,
         smartlead,
         smtp_sender,
+        zerobounce,
     )
 
     table = REGISTRY.get(kind)

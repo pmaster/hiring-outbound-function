@@ -13,7 +13,7 @@ None of it is a code problem.
 
 ## The three that block every live send
 
-### 1. Comp numbers. Peter.
+### 1. Comp numbers. Set, as assumptions. Peter to correct.
 
 Step one of every sequence puts the comp number in the email, because a senior
 operator will not answer a blind approach, and because LinkedIn increasingly
@@ -40,7 +40,54 @@ Pick one number per seat and put it in `config/settings.toml`:
 The demo file has invented numbers so the pipeline runs. They are not
 proposals. Replace them.
 
-### 2. The sending domain. Peter. Lock it for 12 months.
+### 2. viewlineventures.com has no DKIM and no DMARC. Whoever holds the DNS.
+
+**Decided:** Peter chose viewlineventures.com on 2026-08-30, and the code
+records that. What follows is a concrete, checked problem on that domain.
+
+Run it yourself:
+
+    python3 -m outbound dns viewlineventures.com
+
+As of 2026-08-30 it returns:
+
+| Record | State |
+|---|---|
+| SPF | **pass**. `v=spf1 include:spf.efwd.registrar-servers.com include:_spf.google.com ~all` |
+| MX | **pass**. Google Workspace. |
+| DKIM | **missing**. No key at any common selector. |
+| DMARC | **missing**. No record at `_dmarc`. |
+
+An unsigned domain with no DMARC policy is treated as suspicious by every
+large mailbox provider, and cold email from one lands in spam without a
+bounce, so nothing tells you it happened. This is the single highest value
+half hour of work before the first send.
+
+**The fix, both steps.**
+
+1. **DKIM.** The mail is on Google Workspace, so: Admin console, Apps, Google
+   Workspace, Gmail, Authenticate email. Generate a new record for
+   viewlineventures.com, take the TXT value it gives you, publish it at
+   `google._domainkey.viewlineventures.com`, wait for it to propagate, then go
+   back and press Start Authentication. Missing that last step is the common
+   mistake: the record exists and nothing is signed.
+2. **DMARC.** Publish a TXT record at `_dmarc.viewlineventures.com`:
+
+       v=DMARC1; p=none; rua=mailto:dmarc@viewlineventures.com
+
+   Start at `p=none`. Read the reports for two weeks, confirm everything
+   legitimate is passing, then move to `p=quarantine`. Going straight to
+   quarantine or reject will silently drop your own mail.
+
+Then `python3 -m outbound dns` again, and send one seed email to a Gmail
+address and one to an Outlook address and read the raw headers. All three of
+SPF, DKIM and DMARC must say pass. `outbound doctor --dns` folds this check
+into the preflight.
+
+For contrast, sunbirdsystems.com already has DKIM (Zoho) and a DMARC record,
+though its DMARC has no reporting address, so it is also blind.
+
+### 3. The sending domain choice itself. Settled, recorded here.
 
 Nothing is registered or warmed. Warm up is ten days, so this is the long pole.
 
@@ -65,15 +112,16 @@ worker domain, and the name fails bank compliance checks), sunrunlabs.com
 viewlineventures.com and sunbirdsystems.com and names the tradeoff, because
 those are a judgment call, not a rule.
 
-### 3. Job description pages. Peter.
+### 4. Job description pages. Done, needs hosting.
 
-The pages are written and built:
+All nine are written and build to static HTML:
 
     python3 -m outbound pages
 
-That writes `site/` with a careers index, one page per live role, and an
-unsubscribe page. Two things left: read them, and host them on whichever
-domain answers question 2.
+That writes `site/` with a careers index, nine role pages and an unsubscribe
+page. Self contained, no external requests, light and dark. Peter said hosting
+is no problem. Upload `site/` to viewlineventures.com, then the `jd_url` in
+each role file already points at the right path.
 
 They say "we have hired badly for this seat, four attempts in two years" and
 "we have no financial reporting worth the name". That is deliberate and it is

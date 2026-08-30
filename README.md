@@ -25,6 +25,7 @@ sent. Read the output, then read one of the `.eml` files.
     python3 -m outbound init          # creates config/settings.toml and .env
     # edit config/settings.toml: identity, screener_url, and the comp numbers
     python3 -m outbound doctor        # tells you what is still missing
+    python3 -m outbound dns           # checks SPF, DKIM, DMARC and MX
     python3 -m outbound pages         # builds site/ : careers page, JDs, unsubscribe
 
 `doctor` refuses to pass while anything says CHANGEME, while the sending
@@ -164,7 +165,9 @@ Comp does not live in the role files, because those are committed. Put it in
 - `docs/RUNBOOK.md` — what to do each day, and who does it.
 - `docs/COMPLIANCE.md` — where cold email is lawful and where it is not.
 - `docs/OPSEC.md` — what must never share a vector with what.
+- `docs/COMP.md` — the comp band per seat, where it came from, and how sure I am.
 - `docs/VENDORS.md` — which tools to buy, and what to check before buying.
+- `docs/VENDOR-APIS.md` — every vendor endpoint, verified against live docs.
 - `docs/DECISIONS.md` — what is still unanswered and who has to answer it.
 - `docs/ROLE-INTAKE.md` — what is needed to define a seat, and where each answer goes.
 - `docs/ARCHITECTURE.md` — how the code fits together, for whoever maintains it.

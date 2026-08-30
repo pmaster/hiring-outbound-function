@@ -8,7 +8,7 @@ from ..config import secret
 from .. import httpjson
 from . import register
 
-BASE = "https://api.millionverifier.com/api/v3/"
+BASE = "https://api.millionverifier.com/api/v3"
 
 RESULT_MAP = {
     "ok": "valid",
