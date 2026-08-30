@@ -2,7 +2,7 @@ Subject: Re: {{role_title}} at a fifty person trading firm
 
 {{first_name}},
 
-The fair question about my last note is why the seat is open, so here is the short answer.
+You would fairly ask why the seat is open.
 
 We have real revenue and no financial reporting worth the name. Error rates in three departments are unmeasured. Almost every system runs through one engineer. The last person in this seat lasted eleven months.
 

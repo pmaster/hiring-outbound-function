@@ -18,6 +18,7 @@ unsubscribe_url = "https://hiring.example/unsubscribe?e={email_token}"
 per_mailbox_per_day = 18
 mailboxes           = 2
 step_gap_days       = [0, 4, 8]
+search_closes_days  = 10
 skip_weekdays       = [5, 6]
 send_window         = ["08:30", "16:30"]
 timezone            = "America/New_York"

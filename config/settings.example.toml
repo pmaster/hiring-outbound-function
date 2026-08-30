@@ -22,6 +22,8 @@ per_mailbox_per_day = 18
 mailboxes           = 2
 # Days between sequence steps.
 step_gap_days       = [0, 4, 8]
+# The last email names a date. This is how many days ahead it lands.
+search_closes_days  = 10
 # Do not send on these weekdays (0 = Monday).
 skip_weekdays       = [5, 6]
 # Local send window, 24h clock, in the sender's timezone.
