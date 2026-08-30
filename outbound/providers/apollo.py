@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..config import secret
-from ..httpjson import post
+from .. import httpjson
 from ..util import norm_email
 from . import register
 
@@ -71,7 +71,7 @@ class ApolloSearch:
             ]
             if ranges:
                 body["organization_num_employees_ranges"] = ranges
-            data = post(f"{BASE}/mixed_people/search", headers=_headers(), body=body)
+            data = httpjson.post(f"{BASE}/mixed_people/search", headers=_headers(), body=body)
             people = (data or {}).get("people") or []
             if not people:
                 break
@@ -100,7 +100,7 @@ class ApolloEnrich:
             body["organization_name"] = candidate["company"]
         if candidate.get("company_domain"):
             body["domain"] = candidate["company_domain"]
-        data = post(f"{BASE}/people/match", headers=_headers(), body=body)
+        data = httpjson.post(f"{BASE}/people/match", headers=_headers(), body=body)
         person = (data or {}).get("person") or {}
         address = norm_email(person.get("email") or "")
         if not address or "email_not_unlocked" in address or "domain.com" in address:

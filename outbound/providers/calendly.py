@@ -11,7 +11,7 @@ from typing import Any
 
 from ..config import secret
 from ..errors import ConfigError
-from ..httpjson import get, post
+from .. import httpjson
 from ..util import norm_email
 from . import register
 
@@ -46,12 +46,12 @@ class CalendlyBooking:
             params["user"] = self.user
         if since:
             params["min_start_time"] = since
-        data = get(f"{BASE}/scheduled_events", headers=self._headers(), params=params)
+        data = httpjson.get(f"{BASE}/scheduled_events", headers=self._headers(), params=params)
         out: list[dict[str, Any]] = []
         for event in (data or {}).get("collection", []):
             uri = str(event.get("uri") or "")
             uuid = uri.rstrip("/").split("/")[-1]
-            invitees = get(
+            invitees = httpjson.get(
                 f"{BASE}/scheduled_events/{uuid}/invitees",
                 headers=self._headers(),
                 params={"count": 10},
@@ -75,7 +75,7 @@ class CalendlyBooking:
         return out
 
     def cancel(self, provider_id: str, reason: str) -> bool:
-        post(
+        httpjson.post(
             f"{BASE}/scheduled_events/{provider_id}/cancellation",
             headers=self._headers(),
             body={"reason": reason},

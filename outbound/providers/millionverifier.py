@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..config import secret
-from ..httpjson import get
+from .. import httpjson
 from . import register
 
 BASE = "https://api.millionverifier.com/api/v3/"
@@ -30,7 +30,7 @@ class MillionVerifierVerify:
         self.settings = settings
 
     def verify(self, address: str) -> str:
-        data = get(
+        data = httpjson.get(
             BASE,
             params={
                 "api": secret("MILLIONVERIFIER_API_KEY", required=True),

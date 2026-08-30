@@ -19,7 +19,7 @@ from typing import Any
 
 from ..config import secret
 from ..errors import ConfigError, ProviderError
-from ..httpjson import post
+from .. import httpjson
 from . import register
 
 BASE = "https://api.apify.com/v2"
@@ -63,7 +63,7 @@ class ApifySearch:
         }
         payload.update(self.extra_input)
         url = f"{BASE}/acts/{self._actor_path()}/run-sync-get-dataset-items"
-        data = post(
+        data = httpjson.post(
             url,
             params={"token": self.token, "timeout": self.timeout, "limit": limit},
             body=payload,

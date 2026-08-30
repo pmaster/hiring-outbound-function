@@ -19,7 +19,7 @@ from typing import Any
 
 from ..config import secret
 from ..errors import ConfigError
-from ..httpjson import post
+from .. import httpjson
 from . import register
 
 BASE = "https://api.instantly.ai/api/v2"
@@ -62,7 +62,7 @@ class InstantlySend:
                 "outbound_role": message.get("role_key"),
             },
         }
-        data = post(f"{BASE}/leads", headers=self._headers(), body=body)
+        data = httpjson.post(f"{BASE}/leads", headers=self._headers(), body=body)
         if isinstance(data, dict):
             return str(data.get("id") or data.get("lead_id") or "instantly:queued")
         return "instantly:queued"

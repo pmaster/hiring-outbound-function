@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..config import secret
-from ..httpjson import post
+from .. import httpjson
 from ..util import norm_email
 from . import register
 
@@ -30,13 +30,13 @@ class FindymailEnrich:
 
     def find_email(self, candidate: dict[str, Any]) -> list[dict[str, Any]]:
         if candidate.get("linkedin_url"):
-            data = post(
+            data = httpjson.post(
                 f"{BASE}/search/linkedin",
                 headers=self._headers(),
                 body={"linkedin_url": candidate["linkedin_url"]},
             )
         elif candidate.get("full_name") and candidate.get("company_domain"):
-            data = post(
+            data = httpjson.post(
                 f"{BASE}/search/name",
                 headers=self._headers(),
                 body={"name": candidate["full_name"], "domain": candidate["company_domain"]},

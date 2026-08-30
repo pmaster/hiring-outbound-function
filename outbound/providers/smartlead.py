@@ -15,7 +15,7 @@ from typing import Any
 
 from ..config import secret
 from ..errors import ConfigError
-from ..httpjson import post
+from .. import httpjson
 from . import register
 
 BASE = "https://server.smartlead.ai/api/v1"
@@ -58,7 +58,7 @@ class SmartleadSend:
             ],
             "settings": {"ignore_global_block_list": False, "ignore_duplicate_leads_in_other_campaign": False},
         }
-        data = post(
+        data = httpjson.post(
             f"{BASE}/campaigns/{campaign}/leads",
             params={"api_key": secret("SMARTLEAD_API_KEY", required=True)},
             body=body,

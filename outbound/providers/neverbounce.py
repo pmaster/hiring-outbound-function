@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..config import secret
-from ..httpjson import get
+from .. import httpjson
 from . import register
 
 BASE = "https://api.neverbounce.com/v4"
@@ -27,7 +27,7 @@ class NeverBounceVerify:
         self.settings = settings
 
     def verify(self, address: str) -> str:
-        data = get(
+        data = httpjson.get(
             f"{BASE}/single/check",
             params={
                 "key": secret("NEVERBOUNCE_API_KEY", required=True),

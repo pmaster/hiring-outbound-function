@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from ..config import secret
-from ..httpjson import get
+from .. import httpjson
 from ..util import norm_email
 from . import register
 
@@ -30,7 +30,7 @@ class RocketReachEnrich:
         else:
             params["name"] = candidate.get("full_name")
             params["current_employer"] = candidate.get("company")
-        data = get(f"{BASE}/person/lookup", headers=self._headers(), params=params)
+        data = httpjson.get(f"{BASE}/person/lookup", headers=self._headers(), params=params)
 
         # A lookup can come back still searching. Poll a few times, then give up.
         polls = 0
@@ -40,7 +40,7 @@ class RocketReachEnrich:
             person_id = data.get("id")
             if not person_id:
                 break
-            data = get(f"{BASE}/person/lookup", headers=self._headers(), params={"id": person_id})
+            data = httpjson.get(f"{BASE}/person/lookup", headers=self._headers(), params={"id": person_id})
 
         if not isinstance(data, dict):
             return []

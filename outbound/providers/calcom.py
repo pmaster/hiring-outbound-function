@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..config import secret
-from ..httpjson import get, post
+from .. import httpjson
 from ..util import norm_email
 from . import register
 
@@ -47,7 +47,7 @@ class CalComBooking:
             params["eventTypeId"] = self.event_type_id
         if since:
             params["afterStart"] = since
-        data = get(f"{BASE}/bookings", headers=self._headers(), params=params)
+        data = httpjson.get(f"{BASE}/bookings", headers=self._headers(), params=params)
         rows = (data or {}).get("data") if isinstance(data, dict) else data
         if isinstance(rows, dict):
             rows = rows.get("bookings") or []
@@ -76,7 +76,7 @@ class CalComBooking:
         return out
 
     def cancel(self, provider_id: str, reason: str) -> bool:
-        post(
+        httpjson.post(
             f"{BASE}/bookings/{provider_id}/cancel",
             headers=self._headers(),
             body={"cancellationReason": reason},
