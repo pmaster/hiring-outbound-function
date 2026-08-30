@@ -583,8 +583,23 @@ class Database:
         self.meta_set(key, value)
         return value
 
-    def sending_days_used(self) -> int:
-        """How many distinct days this domain has actually sent on."""
+    def sending_days_used(self, before: str | None = None) -> int:
+        """How many distinct days this domain has actually sent on.
+
+        Pass `before` (a YYYY-MM-DD day) to count only days strictly earlier
+        than it. The warm-up ramp uses this with today's day, so that today's
+        own sends cannot advance the ramp tier mid-day: a second send run on a
+        ramp-boundary day must see the same tier as the first, or it would send
+        the next tier's higher volume and defeat the warm up.
+        """
+        if before:
+            return int(
+                self.scalar(
+                    "SELECT COUNT(DISTINCT day) FROM send_log WHERE count > 0 AND day < ?",
+                    (before,),
+                )
+                or 0
+            )
         return int(
             self.scalar("SELECT COUNT(DISTINCT day) FROM send_log WHERE count > 0") or 0
         )

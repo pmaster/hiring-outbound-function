@@ -122,8 +122,19 @@ def cmd_dns(args: argparse.Namespace) -> int:
     """Check SPF, DKIM, DMARC and MX on the sending domain."""
     from .dnscheck import COMMON_DKIM_SELECTORS, check_domain
 
-    settings, _roles = load_all(Path(args.config) if args.config else None)
-    domain = args.domain or str(settings.get("identity.sending_domain", ""))
+    # A domain argument needs no settings, so a fresh clone can run this before
+    # `outbound init`. docs/FIRST-WEEK.md makes it the very first command.
+    domain = args.domain
+    if not domain:
+        try:
+            settings, _roles = load_all(Path(args.config) if args.config else None)
+        except OutboundError as exc:
+            raise OutboundError(
+                "no domain given, and settings are not set up yet. Either pass a "
+                "domain (`outbound dns viewlineventures.com`) or run `outbound init` "
+                f"first. ({exc})"
+            ) from exc
+        domain = str(settings.get("identity.sending_domain", ""))
     if not domain:
         raise OutboundError("no domain. Set identity.sending_domain or pass one.")
     selectors = list(args.selector or []) + list(COMMON_DKIM_SELECTORS)
@@ -425,7 +436,9 @@ def cmd_bookings(args: argparse.Namespace) -> int:
                 print(f"       A: {truncate(str(answer), 70)}")
             print()
         if args.auto:
-            _print(bookings_mod.triage(db, settings, roles, auto=True, live=args.live))
+            _print(bookings_mod.triage(
+                db, settings, roles, auto=True, live=args.live, force_late=args.force_late
+            ))
         else:
             print("Decide one at a time:")
             print("  python3 -m outbound bookings decide <id> confirm")
@@ -437,7 +450,7 @@ def cmd_bookings(args: argparse.Namespace) -> int:
         _print(
             bookings_mod.decide(
                 db, settings, roles, int(args.booking_id), args.decision,
-                reason=args.reason or "", live=args.live,
+                reason=args.reason or "", live=args.live, force_late=args.force_late,
             )
         )
     else:
@@ -699,6 +712,7 @@ def build_parser() -> argparse.ArgumentParser:
     book.add_argument("--reason")
     book.add_argument("--auto", action="store_true", help="act on every suggestion")
     book.add_argument("--live", action="store_true")
+    book.add_argument("--force-late", action="store_true", help="cancel even inside the notice period")
     book.set_defaults(func=cmd_bookings)
 
     replies = sub.add_parser("replies", help="detect replies and bounces, and stop their follow ups")

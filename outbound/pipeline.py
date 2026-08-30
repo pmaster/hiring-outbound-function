@@ -162,7 +162,14 @@ def score_all(
         # still in a pre-decision stage; otherwise the score updates for
         # reference and the stage is left where it is.
         RESTAGEABLE = {"sourced", "scored", "review", "rejected"}
-        if restage and row["stage"] not in RESTAGEABLE:
+        # A hand-rejection is a decision, exactly like a hand-approval, and a
+        # re-score must not resurrect it. A person is rejected by hand for
+        # reasons the score cannot see (a bad reference, a known non-fit), and
+        # review_state records that. Auto-rejects (review_state 'pending') stay
+        # restageable so broadening the ICP can reconsider them.
+        hand_rejected = (row["stage"] == "rejected"
+                         and str(row.get("review_state") or "") == "rejected")
+        if restage and (row["stage"] not in RESTAGEABLE or hand_rejected):
             db.execute(
                 "UPDATE candidates SET score = ?, score_json = ?, updated_at = ? WHERE id = ?",
                 (outcome.score, outcome.to_json(), iso(), row["id"]),
@@ -473,7 +480,8 @@ def warmup_cap(settings: Settings, db: Database) -> tuple[int, str]:
     ramp = settings.get("warmup.ramp", []) or []
     if not ramp:
         return -1, ""
-    used = db.sending_days_used()
+    # Freeze the tier for the whole calendar day: count only days before today.
+    used = db.sending_days_used(before=sending_day(settings))
     elapsed = 0
     for entry in ramp:
         try:

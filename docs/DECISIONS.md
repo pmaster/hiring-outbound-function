@@ -339,6 +339,26 @@ week.
 
 ---
 
+## A known residual: bare 2-letter location tails
+
+Country is inferred from the location string when a profile has no explicit
+country field. A location like "City, XX" where XX is a bare 2-letter code is
+irreducibly ambiguous: CA is both California and Canada, DE both Delaware and
+Germany, MT both Montana and Malta. The tool resolves this in three layers,
+in order: an explicit country field wins; then a spelled-out country name or a
+known foreign city ("Toronto", "Berlin") classifies to that country; then a
+bare tail that is a US state code reads as US, and a bare tail that is an
+unambiguous foreign code (PL, FR, GB, and the like) reads as that country.
+
+The residual: an obscure foreign city in a country whose code also shadows a
+US state (Canada, Germany, Malta), written as a bare "City, CA/DE/MT" with no
+country field and no recognized city name, reads as US. In practice this does
+not happen, because the real sourcing providers (Apollo, Apify) supply an
+explicit country and the tool sources with a US geography filter, so the
+bare-tail path is only reached by a hand-imported CSV. If you import such a
+CSV, include a country column. Unknown countries are refused, which is the
+safe direction.
+
 ## What was assumed to keep building
 
 Where a fact was missing, the code marks it rather than inventing it.

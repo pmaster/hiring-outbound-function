@@ -93,7 +93,24 @@ def request_json(
         except urllib.error.HTTPError as exc:
             raw = exc.read().decode("utf-8", "replace") if exc.fp else ""
             if exc.code in RETRY_STATUS and attempt <= retries:
-                wait = float(exc.headers.get("Retry-After") or 0) or backoff ** attempt
+                # Retry-After is delay-seconds OR an HTTP-date (RFC 7231), and
+                # CDNs send both. float() on a date raises, which would crash
+                # the whole call on a 429, so parse tolerantly and fall back to
+                # exponential backoff.
+                retry_after = (exc.headers.get("Retry-After") or "").strip()
+                try:
+                    wait = float(retry_after)
+                except ValueError:
+                    try:
+                        import email.utils as _eu
+
+                        when = _eu.parsedate_to_datetime(retry_after)
+                        import datetime as _dt
+
+                        wait = max(0.0, (when - _dt.datetime.now(_dt.timezone.utc)).total_seconds())
+                    except (TypeError, ValueError):
+                        wait = 0.0
+                wait = wait or backoff ** attempt
                 sleep(min(wait, 60))
                 continue
             raise HttpError(exc.code, url, raw) from exc

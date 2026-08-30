@@ -166,6 +166,7 @@ def decide(
     decision: str,
     reason: str = "",
     live: bool = False,
+    force_late: bool = False,
 ) -> StepResult:
     """Confirm or cancel one booking. Cancelling always sends the apology."""
     result = StepResult(step=f"bookings:{decision}")
@@ -200,10 +201,15 @@ def decide(
 
     start = parse_iso(booking.get("start_at"))
     lead = float(settings.get("booking.cancel_lead_hours", 12))
-    if start and start - now() < _dt.timedelta(hours=lead):
-        result.notes.append(
-            f"WARNING: less than {lead:g} hours notice. Cancelling this late is worse "
-            f"than taking the call. Consider keeping it."
+    if start and start - now() < _dt.timedelta(hours=lead) and not force_late:
+        # Enforced, not advisory. A late cancellation makes an angry person,
+        # and angry people write the public complaints that cause the platform
+        # problems. Inside the notice period, keep the call. Pass force_late to
+        # override deliberately.
+        raise OutboundError(
+            f"less than {lead:g} hours before the call. Cancelling this late is "
+            f"worse than taking the ten minutes. Keep it, or pass --force-late "
+            f"to cancel anyway."
         )
 
     if not to_address:
@@ -251,6 +257,7 @@ def triage(
     roles: dict[str, Role],
     auto: bool = False,
     live: bool = False,
+    force_late: bool = False,
 ) -> StepResult:
     """Re-check every booking. With --auto, act on the suggestion."""
     result = StepResult(step="bookings:triage")
@@ -260,10 +267,16 @@ def triage(
         if not auto:
             continue
         if item["suggest"] == "cancel":
-            sub = decide(
-                db, settings, roles, int(booking["id"]), "cancel",
-                reason=f"re-check score {item['score']:.2f} below threshold", live=live,
-            )
+            try:
+                sub = decide(
+                    db, settings, roles, int(booking["id"]), "cancel",
+                    reason=f"re-check score {item['score']:.2f} below threshold",
+                    live=live, force_late=force_late,
+                )
+            except OutboundError as exc:
+                result.notes.append(f"booking {booking['id']}: {exc}")
+                result.bump("cancel_skipped_late")
+                continue
         elif item["suggest"] == "confirm":
             sub = decide(db, settings, roles, int(booking["id"]), "confirm", live=live)
         else:

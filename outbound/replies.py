@@ -234,10 +234,16 @@ def sync(db: Database, settings: Any, since: str | None = None) -> StepResult:
             candidate_id=int(matched["id"]) if matched else None,
             role_key=(matched or {}).get("role_key"),
         )
+        # Always apply the stage change. store_inbound and apply commit
+        # separately; if a crash landed between them last run, `stored` would
+        # be False now and gating apply on it would leave the candidate stuck
+        # at 'sent' forever, still receiving follow ups. apply is idempotent
+        # (it only moves candidates not further along and re-suppresses), so
+        # running it every pass is safe. `stored` only decides the counter.
+        moved = apply(db, kind, address, note=f"from {item.from_address}: {item.subject[:120]}")
         if not stored:
             result.bump("already_seen")
-            continue
-        if apply(db, kind, address, note=f"from {item.from_address}: {item.subject[:120]}"):
+        elif moved:
             result.bump(kind)
         else:
             result.bump("no_match")

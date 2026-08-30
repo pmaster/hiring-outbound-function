@@ -92,9 +92,29 @@ def message_problems(settings: Settings, body: str) -> list[Problem]:
     """Every commercial email needs an unsubscribe route and a postal address."""
     problems: list[Problem] = []
     if settings.get("compliance.require_unsubscribe", True):
+        url = str(settings.get("identity.unsubscribe_url", "")).strip()
+        # Strip the token template so the base of the link can be matched in
+        # the rendered body.
+        base = url.split("{email_token}")[0].split("{{email_token}}")[0].split("?")[0].strip()
         if "unsubscribe" not in body.lower():
             problems.append(
                 Problem("no_unsubscribe", "CAN-SPAM: the body has no unsubscribe route")
+            )
+        elif not url or PLACEHOLDER.search(url):
+            problems.append(
+                Problem(
+                    "no_unsubscribe",
+                    "CAN-SPAM: identity.unsubscribe_url is empty or a placeholder, "
+                    "so the opt-out link does not work.",
+                )
+            )
+        elif base and base not in body:
+            problems.append(
+                Problem(
+                    "no_unsubscribe",
+                    "CAN-SPAM: the configured unsubscribe URL does not appear in the "
+                    "body. The template mentions unsubscribing but links nowhere.",
+                )
             )
     if settings.get("compliance.require_postal", True):
         postal = str(settings.get("identity.postal_address", ""))
@@ -145,7 +165,7 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
                 "warmup_attested",
                 "warmup.require_warmup_done is on. Confirm both mailboxes finished "
                 "warm up and SPF, DKIM and DMARC pass, then run with --attest-warmup.",
-                fatal=False,
+                fatal=True,
             )
         )
 

@@ -159,6 +159,11 @@ def query(name: str, rtype: int = TYPE_TXT, timeout: float = 3.0) -> list[str]:
             offset += 10
             rdata = data[offset : offset + rdlength]
             end = offset + rdlength
+            if len(rdata) < rdlength:
+                # Truncated datagram: the record claims more bytes than are
+                # present. Stop rather than let struct.unpack raise struct.error
+                # and crash `outbound doctor`.
+                break
             if atype == TYPE_TXT:
                 chunks, position = [], 0
                 while position < len(rdata):

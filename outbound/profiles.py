@@ -65,6 +65,46 @@ COUNTRY_HINTS: list[tuple[str, str]] = [
     ("united arab emirates", "AE"), ("israel", "IL"), ("switzerland", "CH"),
 ]
 
+# Major cities of the blocked countries. A 2-letter location tail like "CA" or
+# "DE" is ambiguous: CA is both California and Canada, DE is both Delaware and
+# Germany, and most East-coast state codes collide with an ISO country code
+# (PA/Panama, GA/Gabon, VA/Vatican). We cannot resolve that from the tail. So
+# we positively detect a foreign city FIRST; only then does the tail get read
+# as a US state. This catches the realistic case ("Toronto, CA", "Berlin, DE")
+# without rejecting every Pennsylvania or California profile. Real sourcing
+# (Apollo, Apify) supplies an explicit country anyway, so the tail path is a
+# hand-CSV fallback. See docs/DECISIONS.md.
+FOREIGN_CITY_HINTS: list[tuple[str, str]] = [
+    # Canada
+    ("toronto", "CA"), ("vancouver", "CA"), ("montreal", "CA"), ("montréal", "CA"),
+    ("calgary", "CA"), ("ottawa", "CA"), ("edmonton", "CA"), ("winnipeg", "CA"),
+    ("mississauga", "CA"), ("hamilton, on", "CA"), ("kitchener", "CA"),
+    ("waterloo, on", "CA"), ("quebec", "CA"), ("québec", "CA"), ("halifax", "CA"),
+    ("victoria, bc", "CA"), ("burnaby", "CA"), ("markham", "CA"), ("brampton", "CA"),
+    # Germany
+    ("berlin", "DE"), ("munich", "DE"), ("münchen", "DE"), ("hamburg", "DE"),
+    ("frankfurt", "DE"), ("cologne", "DE"), ("köln", "DE"), ("stuttgart", "DE"),
+    ("düsseldorf", "DE"), ("dusseldorf", "DE"), ("leipzig", "DE"), ("dresden", "DE"),
+    # United Kingdom
+    ("london", "GB"), ("manchester", "GB"), ("birmingham, uk", "GB"),
+    ("edinburgh", "GB"), ("glasgow", "GB"), ("leeds", "GB"), ("bristol", "GB"),
+    ("liverpool", "GB"), ("cardiff", "GB"), ("belfast", "GB"),
+    # Other blocked EU
+    ("paris", "FR"), ("lyon", "FR"), ("marseille", "FR"), ("toulouse", "FR"),
+    ("madrid", "ES"), ("barcelona", "ES"), ("valencia", "ES"), ("seville", "ES"),
+    ("rome", "IT"), ("milan", "IT"), ("milano", "IT"), ("turin", "IT"), ("naples", "IT"),
+    ("amsterdam", "NL"), ("rotterdam", "NL"), ("the hague", "NL"),
+    ("dublin", "IE"), ("cork, ireland", "IE"),
+    ("lisbon", "PT"), ("porto", "PT"),
+    ("warsaw", "PL"), ("warszawa", "PL"), ("krakow", "PL"), ("kraków", "PL"), ("wroclaw", "PL"), ("wrocław", "PL"),
+    ("gdansk", "PL"), ("gdańsk", "PL"), ("poznan", "PL"), ("poznań", "PL"),
+    ("stockholm", "SE"), ("gothenburg", "SE"), ("copenhagen", "DK"),
+    ("helsinki", "FI"), ("oslo", "NO"), ("vienna", "AT"), ("wien", "AT"),
+    ("brussels", "BE"), ("bruxelles", "BE"), ("antwerp", "BE"),
+    ("prague", "CZ"), ("praha", "CZ"), ("athens", "GR"), ("budapest", "HU"),
+    ("bucharest", "RO"), ("zagreb", "HR"), ("sofia", "BG"),
+]
+
 # Two letter US state abbreviations used in "Austin, TX" style locations.
 US_STATES = {
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
@@ -72,6 +112,18 @@ US_STATES = {
     "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
     "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
     "WI", "WY", "DC",
+}
+
+# Two-letter ISO country codes that are NOT US state abbreviations, so a bare
+# tail like "Krakow, PL" resolves unambiguously. Codes that shadow a US state
+# (CA=California/Canada, DE=Delaware/Germany, MT=Montana/Malta) are deliberately
+# absent: for those the tail defaults to the US state and a foreign city hint
+# is what catches the foreign case.
+FOREIGN_TAIL_CODES = {
+    "GB", "PL", "FR", "ES", "IT", "NL", "IE", "PT", "SE", "DK", "FI", "NO",
+    "AT", "BE", "CZ", "GR", "HU", "RO", "SK", "SI", "BG", "HR", "EE", "LV",
+    "LT", "LU", "CY", "AU", "NZ", "PH", "MX", "BR", "ZA", "SG", "JP", "AE",
+    "IL", "CH", "UA", "RS", "TR",
 }
 
 HEADCOUNT_BANDS = {
@@ -114,6 +166,23 @@ def _to_float(value: Any) -> float | None:
         return float(match.group(0)) if match else None
 
 
+_HINT_RE_CACHE: dict[str, "re.Pattern[str]"] = {}
+
+
+def _has_word(text: str, needle: str) -> bool:
+    """True if `needle` appears in `text` on word boundaries.
+
+    Substring matching classified "Indianapolis" as India ("india" is inside
+    it) and refused every Indiana profile. Boundaries stop that while still
+    matching "toronto" in "toronto, ca".
+    """
+    pattern = _HINT_RE_CACHE.get(needle)
+    if pattern is None:
+        pattern = re.compile(r"(?<![a-z])" + re.escape(needle) + r"(?![a-z])")
+        _HINT_RE_CACHE[needle] = pattern
+    return bool(pattern.search(text))
+
+
 def guess_country(location: str | None, explicit: str | None = None) -> str:
     """ISO 3166 alpha 2, or "" when we cannot tell.
 
@@ -125,17 +194,27 @@ def guess_country(location: str | None, explicit: str | None = None) -> str:
         if len(text) == 2 and text.isalpha():
             return text.upper()
         for needle, code in COUNTRY_HINTS:
-            if needle in text.lower():
+            if _has_word(text.lower(), needle):
                 return code
     text = (location or "").lower()
     if not text:
         return ""
     for needle, code in COUNTRY_HINTS:
-        if needle in text:
+        if _has_word(text, needle):
             return code
-    tail = (location or "").split(",")[-1].strip().upper()
+    # A foreign city resolves the 2-letter-tail ambiguity before we read the
+    # tail as a US state. Without this, "Toronto, CA" reads as California and
+    # a Canadian is emailed in breach of CASL.
+    for needle, code in FOREIGN_CITY_HINTS:
+        if _has_word(text, needle):
+            return code
+    tail = (location or "").split(",")[-1].strip().upper().rstrip(".")
+    if tail in {"US", "USA", "U.S", "U.S.A", "UNITED STATES"}:
+        return "US"
     if tail in US_STATES:
         return "US"
+    if tail in FOREIGN_TAIL_CODES:
+        return tail
     return ""
 
 
