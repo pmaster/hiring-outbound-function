@@ -323,12 +323,31 @@ class Database:
             "updated_at": iso(),
         }
         if existing:
-            sets = ", ".join(f"{k} = ?" for k in payload if k not in ("role_key", "linkedin_key"))
-            values = [v for k, v in payload.items() if k not in ("role_key", "linkedin_key")]
-            self.conn.execute(
-                f"UPDATE candidates SET {sets} WHERE id = ?", (*values, existing["id"])
-            )
-            self.conn.commit()
+            # MERGE, do not overwrite. A second sighting of the same person by
+            # a thinner search (Apollo search returns name + linkedin_url only)
+            # must not blank the rich data from the first sighting. Write only
+            # the columns the new payload carries a value for; always refresh
+            # the housekeeping columns; and keep the stored profile_json unless
+            # the new payload has a real profile_text, because losing the raw
+            # makes `score --restage` unable to recover the row.
+            always = {"updated_at", "source", "source_search"}
+            skip = {"role_key", "linkedin_key", "profile_json"}
+            has_text = bool(str(profile.get("profile_text") or "").strip())
+            updates: dict[str, Any] = {}
+            for column, value in payload.items():
+                if column in skip:
+                    continue
+                if column in always or value not in (None, ""):
+                    updates[column] = value
+            if has_text:
+                updates["profile_json"] = payload["profile_json"]
+            if updates:
+                sets = ", ".join(f"{k} = ?" for k in updates)
+                self.conn.execute(
+                    f"UPDATE candidates SET {sets} WHERE id = ?",
+                    (*updates.values(), existing["id"]),
+                )
+                self.conn.commit()
             return int(existing["id"]), False
         payload["sourced_at"] = iso()
         payload["stage"] = "sourced"

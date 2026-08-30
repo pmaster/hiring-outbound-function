@@ -232,6 +232,52 @@ class TestDatabase(unittest.TestCase):
         b, _ = self.db.upsert_candidate("r2", {"linkedin_url": "linkedin.com/in/jane", "full_name": "Jane"})
         self.assertNotEqual(a, b)
 
+    def test_a_thin_re_sighting_does_not_blank_the_rich_row(self):
+        """Apollo search returns name + linkedin_url only. A second sighting of
+        someone already sourced by a richer search must not wipe their data,
+        or they silently drop out of the funnel and score --restage cannot
+        recover them because profile_json is gone too."""
+        from outbound.profiles import normalize
+
+        rich = normalize({
+            "fullName": "Dana Reyes", "headline": "Head of Operations at Kestrel",
+            "profileUrl": "https://uk.linkedin.com/in/dana-reyes/",
+            "location": "Austin, TX", "companyName": "Kestrel", "companySize": "51-200",
+            "summary": "Built the ops function from scratch.",
+        }, source="apify")
+        cid, _ = self.db.upsert_candidate("r", rich)
+        thin = normalize({
+            "fullName": "Dana Reyes", "profileUrl": "https://linkedin.com/in/dana-reyes",
+        }, source="apollo")
+        cid2, created = self.db.upsert_candidate("r", thin)
+        self.assertEqual(cid2, cid)
+        self.assertFalse(created)
+        row = self.db.candidate(cid)
+        self.assertEqual(row["title"], "Head of Operations")
+        self.assertEqual(row["company"], "Kestrel")
+        self.assertEqual(row["country"], "US")
+        self.assertTrue(row["profile_text"], "profile_text was blanked")
+        self.assertEqual(row["source"], "apollo", "housekeeping fields still refresh")
+        import json as _json
+        self.assertTrue(_json.loads(row["profile_json"]), "profile_json was blanked")
+
+    def test_a_richer_re_sighting_still_updates(self):
+        from outbound.profiles import normalize
+
+        cid, _ = self.db.upsert_candidate("r", normalize({
+            "fullName": "Dana Reyes", "headline": "Head of Operations at Kestrel",
+            "profileUrl": "https://linkedin.com/in/dana-reyes", "location": "Austin, TX",
+        }))
+        self.db.upsert_candidate("r", normalize({
+            "fullName": "Dana Reyes", "headline": "VP Operations at Kestrel",
+            "profileUrl": "https://linkedin.com/in/dana-reyes", "location": "Denver, CO",
+            "companySize": "201-500",
+        }))
+        row = self.db.candidate(cid)
+        self.assertEqual(row["title"], "VP Operations")
+        self.assertEqual(row["location"], "Denver, CO")
+        self.assertEqual(row["company_headcount"], 350)
+
     def test_domain_suppression_covers_addresses(self):
         self.db.suppress("domain", "Example.COM", "test")
         self.assertTrue(self.db.is_suppressed("email", "someone@example.com"))
