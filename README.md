@@ -159,3 +159,4 @@ Comp does not live in the role files, because those are committed. Put it in
 - `docs/OPSEC.md` — what must never share a vector with what.
 - `docs/VENDORS.md` — which tools to buy and what they cost.
 - `docs/DECISIONS.md` — what is still unanswered and who has to answer it.
+- `docs/ARCHITECTURE.md` — how the code fits together, for whoever maintains it.
