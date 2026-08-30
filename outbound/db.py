@@ -356,6 +356,25 @@ class Database:
     def candidate(self, candidate_id: int) -> dict[str, Any] | None:
         return self.one("SELECT * FROM candidates WHERE id = ?", (candidate_id,))
 
+    def contacted_for_another_role(
+        self, linkedin_key: str, role_key: str
+    ) -> dict[str, Any] | None:
+        """Has this person already been written to for a different seat?
+
+        One internal role is posted publicly under five titles at different
+        bands. A person who receives two of our emails can see the duplication,
+        and it reads as a mass mailing rather than a considered approach.
+        """
+        if not linkedin_key:
+            return None
+        return self.one(
+            "SELECT c.* FROM candidates c "
+            "JOIN messages m ON m.candidate_id = c.id "
+            "WHERE c.linkedin_key = ? AND c.role_key != ? AND m.status = 'sent' "
+            "ORDER BY m.sent_at ASC LIMIT 1",
+            (linkedin_key, role_key),
+        )
+
     # ---- emails ----------------------------------------------------
 
     def add_email(

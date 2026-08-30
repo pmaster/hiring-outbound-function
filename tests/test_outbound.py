@@ -310,6 +310,22 @@ class TestCompose(unittest.TestCase):
                         f"{role.key} step {step} leaks {word!r} above the NDA line",
                     )
 
+    def test_a_per_search_comp_band_wins_over_the_role_band(self):
+        """Quoting a candidate the wrong city's band is a real error."""
+        role = self.roles["fulfillment-specialist"]
+        bands = {s.name: s.comp for s in role.searches if s.comp}
+        self.assertGreaterEqual(len(bands), 2, "expected per city bands")
+        for name, band in bands.items():
+            self.assertEqual(role.comp_for(name), band)
+            out = render(
+                self.settings, role,
+                dict(self.candidate, source_search=name), "d@x.com", 1,
+            )
+            self.assertIn(band, out.body)
+        # No search named, so the role band is used.
+        self.assertEqual(role.comp_for(None), role.comp)
+        self.assertEqual(role.comp_for("no-such-search"), role.comp)
+
     def test_step_one_refuses_without_a_personal_note(self):
         candidate = dict(self.candidate, personal_note="")
         with self.assertRaises(OutboundError):
@@ -520,6 +536,44 @@ class TestPipeline(unittest.TestCase):
         self.assertGreaterEqual(result.counts.get("skipped_stage", 0), 1)
         after = self.db.one("SELECT status FROM messages WHERE id = ?", (target["id"],))
         self.assertEqual(after["status"], "skipped")
+
+    def test_a_person_is_never_written_to_for_two_roles(self):
+        other = self.roles["engineer"]
+        for role in (self.role, other):
+            pipeline.run_search(self.db, self.settings, role)
+            pipeline.score_all(self.db, self.settings, role)
+            for row in self.db.candidates(role.key, stages=["review"]):
+                pipeline.set_review(self.db, role, int(row["id"]), "approve", "a detail")
+            pipeline.enrich(self.db, self.settings, role)
+            pipeline.verify_emails(self.db, self.settings, role)
+        # Put the same person in both roles, then send for the first.
+        first = self.db.candidates(self.role.key, stages=["verified"])[0]
+        key = first["linkedin_key"]
+        # Go through normalize, as the importer does. Passing a raw dict
+        # straight to upsert leaves country null, and a null country is
+        # refused by the geo gate before the cross role guard is reached.
+        self.db.upsert_candidate(other.key, normalize({
+            "fullName": first["full_name"], "profileUrl": first["linkedin_url"],
+            "headline": first["title"], "companyName": first["company"],
+            "location": first["location"],
+        }))
+        dupe = self.db.one(
+            "SELECT * FROM candidates WHERE role_key = ? AND linkedin_key = ?",
+            (other.key, key),
+        )
+        self.db.execute(
+            "UPDATE candidates SET personal_note = 'x', stage = 'verified', "
+            "review_state = 'approved' WHERE id = ?", (dupe["id"],))
+        self.db.add_email(int(dupe["id"]), "dupe@example.com", primary=True)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        pipeline.send_due(self.db, self.settings, self.role, live=False)
+
+        result = pipeline.queue_next(self.db, self.settings, other)
+        self.assertGreaterEqual(
+            result.counts.get("already_contacted_for_another_role", 0), 1
+        )
+        after = self.db.candidate(int(dupe["id"]))
+        self.assertEqual(after["stage"], "stopped")
 
     def test_suppressed_address_is_never_written_to(self):
         self._seed()

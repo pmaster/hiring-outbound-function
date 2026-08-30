@@ -57,6 +57,9 @@ enrich_waterfall = []
 max_profiles_per_search = 1000
 max_enrich_per_run      = 250
 max_sends_per_run       = 60
+# Never write to the same person for two different seats. A person who gets
+# two of our emails can see it was a mass mailing.
+one_role_per_person       = true
 never_enrich_rejected   = true
 enrich_attempts         = 2
 

@@ -128,6 +128,10 @@ class Search:
     seniority: tuple[str, ...] = ()
     keywords: str = ""
     target: int = 200
+    # Optional per search comp band. Set it when the same role pays
+    # differently by city, which it does for the field seats. Quoting a
+    # candidate the wrong city's band is a real error, not a rounding one.
+    comp: str = ""
 
 
 @dataclass
@@ -156,6 +160,14 @@ class Role:
     @property
     def is_live(self) -> bool:
         return self.status == "live"
+
+    def comp_for(self, search_name: str | None) -> str:
+        """The band to quote this person. Per search band wins over the role."""
+        if search_name:
+            for search in self.searches:
+                if search.name == search_name and search.comp:
+                    return search.comp
+        return self.comp
 
     def placeholders(self) -> list[str]:
         """Fields still holding CHANGEME or NEEDS_PETER. Blocks sending."""
@@ -356,6 +368,7 @@ def load_role(path: Path) -> Role:
             seniority=_as_tuple(item.get("seniority")),
             keywords=str(item.get("keywords") or ""),
             target=int(item.get("target", 200)),
+            comp=str(item.get("comp") or ""),
         )
         for i, item in enumerate(data.get("search", []))
     ]

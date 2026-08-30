@@ -168,7 +168,12 @@ questions = [
   "When could you start?",
 ]
 
+# Comp varies by city, so each search carries its own band and the email quotes
+# the band for the city the person was sourced from. Figures are the posted
+# Technical Support Specialist and Quantitative Gaming Specialist bands from
+# the posting sheet. See docs/SOURCE-BRIEF.md section 1.4.
 [[search]]
+comp      = "$80,000 to $105,000 a year"
 name      = "qa-and-support-philadelphia"
 titles    = ["Quality Assurance Specialist", "Technical Support Specialist", "Operations Associate"]
 geo       = ["Greater Philadelphia"]
@@ -178,6 +183,7 @@ keywords  = "(QA OR audit OR verification OR compliance OR ticketing) NOT (manag
 target    = 300
 
 [[search]]
+comp      = "$83,000 to $107,000 a year"
 name      = "kyc-and-claims-nj"
 titles    = ["KYC Analyst", "Compliance Analyst", "Claims Processor", "Data Verification Specialist"]
 geo       = ["New Jersey"]
@@ -187,6 +193,7 @@ keywords  = "(KYC OR verification OR claims OR \"document review\") NOT (manager
 target    = 300
 
 [[search]]
+comp      = "$72,000 to $96,000 a year"
 name      = "qa-and-support-detroit"
 titles    = ["Quality Assurance Specialist", "Technical Support Specialist", "Operations Specialist"]
 geo       = ["Detroit"]

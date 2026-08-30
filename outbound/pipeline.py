@@ -454,6 +454,7 @@ def queue_next(
         raise OutboundError(f"no templates in templates/{role.template_dir}/")
     gaps = [int(g) for g in settings.get("sending.step_gap_days", [0, 4, 8]) or [0]]
     cap = limit or int(settings.get("limits.max_sends_per_run", 60)) * 3
+    one_role_only = bool(settings.get("limits.one_role_per_person", True))
 
     # Step 1 for people who have never been written to.
     for row in db.candidates(role.key, stages=["verified"], limit=cap):
@@ -470,6 +471,15 @@ def queue_next(
             db.set_stage(row["id"], "unsubscribed", "suppression list")
             result.bump("suppressed")
             continue
+        if one_role_only:
+            other = db.contacted_for_another_role(row["linkedin_key"], role.key)
+            if other:
+                db.set_stage(
+                    row["id"], "stopped",
+                    f"already written to for role {other['role_key']}",
+                )
+                result.bump("already_contacted_for_another_role")
+                continue
         try:
             rendered = render(settings, role, dict(row), email["address"], steps[0])
         except OutboundError as exc:

@@ -147,7 +147,7 @@ def build_context(
         "personal_note": str(candidate.get("personal_note") or "").strip(),
         "role_title": role.title,
         "role_one_liner": role.one_liner,
-        "comp": role.comp,
+        "comp": role.comp_for(candidate.get("source_search")),
         "employment": role.employment,
         "jd_url": role.jd_url,
         "screener_url": str(settings.get("booking.screener_url", "")),
