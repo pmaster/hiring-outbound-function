@@ -6,6 +6,7 @@ so a run can stop at any point and resume without losing work.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import Any, Iterable, Sequence
 
 from .util import iso, norm_email, norm_linkedin, now
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # The funnel, in order. `stage_index` uses this, so keep it ordered.
 STAGES = [
@@ -163,6 +164,21 @@ CREATE TABLE IF NOT EXISTS runs (
     summary   TEXT,
     dry_run   INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE IF NOT EXISTS inbound (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    received_at   TEXT,
+    stored_at     TEXT NOT NULL,
+    from_address  TEXT NOT NULL,
+    subject       TEXT,
+    body          TEXT,
+    kind          TEXT NOT NULL DEFAULT 'replied',
+    candidate_id  INTEGER REFERENCES candidates (id) ON DELETE SET NULL,
+    role_key      TEXT,
+    handled       INTEGER NOT NULL DEFAULT 0,
+    fingerprint   TEXT UNIQUE
+);
+CREATE INDEX IF NOT EXISTS idx_inbound_handled ON inbound (handled, id DESC);
 
 CREATE TABLE IF NOT EXISTS send_log (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -553,6 +569,53 @@ class Database:
         return int(
             self.scalar("SELECT COUNT(DISTINCT day) FROM send_log WHERE count > 0") or 0
         )
+
+    def store_inbound(
+        self,
+        from_address: str,
+        subject: str,
+        body: str,
+        kind: str,
+        received_at: str = "",
+        candidate_id: int | None = None,
+        role_key: str | None = None,
+    ) -> tuple[int, bool]:
+        """Keep the reply. Returns (id, created).
+
+        Deduped on a fingerprint so re-running the sync does not pile up
+        copies of the same message.
+        """
+        address = norm_email(from_address)
+        fingerprint = hashlib.sha256(
+            "|".join([address, subject or "", (body or "")[:600], received_at or ""]).encode("utf-8")
+        ).hexdigest()
+        existing = self.one("SELECT id FROM inbound WHERE fingerprint = ?", (fingerprint,))
+        if existing:
+            return int(existing["id"]), False
+        cur = self.conn.execute(
+            "INSERT INTO inbound (received_at, stored_at, from_address, subject, body, "
+            "kind, candidate_id, role_key, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (received_at, iso(), address, subject, (body or "")[:20000], kind,
+             candidate_id, role_key, fingerprint),
+        )
+        self.conn.commit()
+        return int(cur.lastrowid), True
+
+    def inbox(self, only_unhandled: bool = True, limit: int = 50) -> list[dict[str, Any]]:
+        where = "WHERE i.handled = 0" if only_unhandled else ""
+        return self.query(
+            "SELECT i.*, c.full_name, c.stage, c.linkedin_url "
+            "FROM inbound i LEFT JOIN candidates c ON c.id = i.candidate_id "
+            f"{where} ORDER BY i.id DESC LIMIT ?",
+            (limit,),
+        )
+
+    def mark_inbound_handled(self, inbound_id: int, handled: bool = True) -> None:
+        self.conn.execute(
+            "UPDATE inbound SET handled = ? WHERE id = ?",
+            (1 if handled else 0, inbound_id),
+        )
+        self.conn.commit()
 
     def variant_stats(self, role_key: str | None = None, step: int = 1) -> list[dict[str, Any]]:
         """Reply and booking rate per copy variant, for the given step."""

@@ -138,6 +138,49 @@ class TestApply(unittest.TestCase):
         self.assertEqual(result.counts.get("replied"), 1)
         self.assertEqual(result.counts.get("ignored"), 1)
 
+    def test_sync_keeps_the_message_text(self):
+        """Knowing someone replied is not knowing what they said."""
+        items = [inbound(self.address, "Re: the seat", "Interested. What is the comp?")]
+        with mock.patch.object(replies, "fetch", lambda settings, since=None: items):
+            replies.sync(self.db, self.settings)
+        rows = self.db.inbox()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["kind"], "replied")
+        self.assertIn("What is the comp?", rows[0]["body"])
+        self.assertIsNotNone(rows[0]["candidate_id"])
+
+    def test_sync_is_idempotent_on_the_same_message(self):
+        items = [inbound(self.address, "Re: the seat", "Same message.")]
+        with mock.patch.object(replies, "fetch", lambda settings, since=None: items):
+            first = replies.sync(self.db, self.settings)
+            second = replies.sync(self.db, self.settings)
+        self.assertEqual(first.counts.get("replied"), 1)
+        self.assertEqual(second.counts.get("already_seen"), 1)
+        self.assertEqual(len(self.db.inbox(only_unhandled=False)), 1)
+
+    def test_a_bounce_is_filed_against_the_recipient_not_the_daemon(self):
+        item = inbound(
+            "mailer-daemon@x.com",
+            subject="Undelivered Mail Returned to Sender",
+            body=f"550 5.1.1 <{self.address}>: Recipient address rejected: User unknown",
+        )
+        with mock.patch.object(replies, "fetch", lambda settings, since=None: [item]):
+            replies.sync(self.db, self.settings)
+        row = self.db.inbox()[0]
+        self.assertEqual(row["kind"], "bounced")
+        self.assertEqual(row["from_address"], "mailer-daemon@x.com")
+        candidate = self.db.candidate(int(row["candidate_id"]))
+        self.assertEqual(candidate["stage"], "bounced")
+
+    def test_marking_handled_clears_it_from_the_inbox(self):
+        items = [inbound(self.address)]
+        with mock.patch.object(replies, "fetch", lambda settings, since=None: items):
+            replies.sync(self.db, self.settings)
+        row = self.db.inbox()[0]
+        self.db.mark_inbound_handled(int(row["id"]))
+        self.assertEqual(self.db.inbox(), [])
+        self.assertEqual(len(self.db.inbox(only_unhandled=False)), 1)
+
     def test_fetch_routes_through_the_configured_provider(self):
         """The reply source is configurable, so a sequencer's inbox works too."""
         rows = [{"from_address": "A@Example.com", "subject": "Re: x", "body": "yes", "date": ""}]

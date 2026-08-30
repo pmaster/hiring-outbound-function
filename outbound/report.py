@@ -163,6 +163,15 @@ def next_actions(db: Database, settings: Settings, roles: dict[str, Role]) -> st
     booked = db.scalar("SELECT COUNT(*) FROM bookings WHERE status = 'booked'") or 0
     if booked:
         lines.append(f"bookings: {booked} booked and not re-checked. `outbound bookings triage`")
+    waiting = db.scalar("SELECT COUNT(*) FROM inbound WHERE handled = 0") or 0
+    if waiting:
+        replied = db.scalar(
+            "SELECT COUNT(*) FROM inbound WHERE handled = 0 AND kind = 'replied'"
+        ) or 0
+        lines.append(
+            f"inbox: {waiting} message(s) waiting, {replied} of them real replies. "
+            f"`outbound inbox`"
+        )
     return "\n".join(f"  - {line}" for line in lines) or "  - nothing waiting."
 
 

@@ -92,7 +92,16 @@ email data from a vendor.
    suppresses hard bounces. Run it before `queue`, not after, so a follow up
    never goes to someone who already replied.
 
-   Anything it misses, mark by hand:
+   Then read what people actually said:
+
+       python3 -m outbound inbox
+       python3 -m outbound inbox 12            # the whole message
+       python3 -m outbound inbox --handled 12  # dealt with
+
+   The stage change is automatic. Answering the person is not, and that is
+   the only part of this that makes a hire.
+
+   Anything the scan misses, mark by hand:
 
        python3 -m outbound replies mark someone@company.com
        python3 -m outbound replies mark someone@company.com --kind unsubscribed

@@ -457,6 +457,48 @@ def cmd_replies(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_inbox(args: argparse.Namespace) -> int:
+    """What people actually said, and whether anyone has dealt with it."""
+    settings, _roles, db = _bootstrap(args)
+    if args.handled is not None:
+        db.mark_inbound_handled(int(args.handled), True)
+        print(f"marked inbound {args.handled} handled")
+        db.close()
+        return 0
+    if args.message_id is not None:
+        row = db.one("SELECT * FROM inbound WHERE id = ?", (int(args.message_id),))
+        if not row:
+            raise OutboundError(f"no inbound message with id {args.message_id}")
+        print(f"[{row['id']}] {row['kind']}  from {row['from_address']}  {row.get('received_at') or ''}")
+        print(f"Subject: {row.get('subject') or ''}")
+        if row.get("candidate_id"):
+            print(f"Candidate: {row['candidate_id']}  (outbound show {row['candidate_id']})")
+        print()
+        print(row.get("body") or "(no body)")
+        db.close()
+        return 0
+
+    rows = db.inbox(only_unhandled=not args.all, limit=args.limit)
+    if not rows:
+        print("nothing waiting." if not args.all else "no inbound mail recorded.")
+        db.close()
+        return 0
+    print(f"{len(rows)} message(s){'' if args.all else ' not yet handled'}.\n")
+    for row in rows:
+        who = row.get("full_name") or row["from_address"]
+        print(f"[{row['id']:>4}] {row['kind']:12} {truncate(who, 28):30} {row.get('received_at') or ''}")
+        print(f"       {truncate(str(row.get('subject') or ''), 74)}")
+        body = " ".join(str(row.get("body") or "").split())
+        print(f"       {truncate(body, 74)}")
+        if row.get("candidate_id"):
+            print(f"       candidate {row['candidate_id']}, stage {row.get('stage')}")
+        print()
+    print("  python3 -m outbound inbox <id>            read the whole message")
+    print("  python3 -m outbound inbox --handled <id>  mark it dealt with")
+    db.close()
+    return 0
+
+
 def cmd_suppress(args: argparse.Namespace) -> int:
     settings, _roles, db = _bootstrap(args)
     if args.from_file:
@@ -650,6 +692,13 @@ def build_parser() -> argparse.ArgumentParser:
     replies.add_argument("--since", help="ISO timestamp. Default: the first send.")
     replies.add_argument("--note")
     replies.set_defaults(func=cmd_replies)
+
+    inbox = sub.add_parser("inbox", help="read what people replied")
+    inbox.add_argument("message_id", nargs="?", type=int)
+    inbox.add_argument("--all", action="store_true", help="include messages already handled")
+    inbox.add_argument("--handled", type=int, metavar="ID", help="mark one dealt with")
+    inbox.add_argument("--limit", type=int, default=30)
+    inbox.set_defaults(func=cmd_inbox)
 
     suppress = sub.add_parser("suppress", help="never contact this address, domain or profile")
     suppress.add_argument("value", nargs="?")

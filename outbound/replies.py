@@ -218,6 +218,25 @@ def sync(db: Database, settings: Any, since: str | None = None) -> StepResult:
         if kind == "ignore":
             result.bump("ignored")
             continue
+        matched = db.one(
+            "SELECT c.id, c.role_key FROM candidates c JOIN emails e ON e.candidate_id = c.id "
+            "WHERE e.address = ? ORDER BY c.id DESC LIMIT 1",
+            (address,),
+        )
+        # Keep the message. Knowing that someone replied is not the same as
+        # knowing what they said, and the text is what you act on.
+        _row_id, stored = db.store_inbound(
+            from_address=item.from_address,
+            subject=item.subject,
+            body=item.body,
+            kind=kind,
+            received_at=item.date,
+            candidate_id=int(matched["id"]) if matched else None,
+            role_key=(matched or {}).get("role_key"),
+        )
+        if not stored:
+            result.bump("already_seen")
+            continue
         if apply(db, kind, address, note=f"from {item.from_address}: {item.subject[:120]}"):
             result.bump(kind)
         else:
