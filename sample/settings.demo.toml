@@ -97,3 +97,7 @@ jd_url = "https://hiring.example/roles/technical-program-manager"
 [role_overrides.business-systems-lead]
 comp   = "NOT SET IN ANY SOURCE DOCUMENT"
 jd_url = "https://hiring.example/roles/business-systems-lead"
+
+[role_overrides.fulfillment-specialist]
+comp   = "VARIES BY CITY - see docs/SOURCE-BRIEF.md 1.4"
+jd_url = "https://hiring.example/roles/technical-support-specialist"

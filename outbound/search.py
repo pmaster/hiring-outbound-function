@@ -53,7 +53,13 @@ def linkedin_url(spec: Search) -> str:
 
 
 def manual_checklist(role: Role, spec: Search) -> list[str]:
-    """Filters that no URL can carry reliably. Set these by hand."""
+    """Filters that no URL can carry reliably. Set these by hand.
+
+    Everything in `[icp]` appears here. The scoring signals in `[[signal]]`
+    rank what comes back; these are what a person sets in the search tool
+    before anything comes back at all. `title_excludes` does both: it is also
+    a hard reject at scoring time.
+    """
     icp = role.icp or {}
     items: list[str] = []
     if spec.geo:
@@ -62,8 +68,15 @@ def manual_checklist(role: Role, spec: Search) -> list[str]:
         items.append(f"Company headcount: {', '.join(spec.headcount)}")
     if spec.seniority:
         items.append(f"Seniority: {', '.join(spec.seniority)}")
-    if icp.get("min_years_experience"):
-        items.append(f"Years of experience: {icp['min_years_experience']}+")
+    if icp.get("min_years_experience") or icp.get("max_years_experience"):
+        low = icp.get("min_years_experience")
+        high = icp.get("max_years_experience")
+        if low and high:
+            items.append(f"Years of experience: {low} to {high}")
+        elif high:
+            items.append(f"Years of experience: up to {high}. Over that is too expensive for the band.")
+        else:
+            items.append(f"Years of experience: {low}+")
     if icp.get("min_months_in_role"):
         low = icp["min_months_in_role"]
         high = icp.get("max_months_in_role")
@@ -71,6 +84,16 @@ def manual_checklist(role: Role, spec: Search) -> list[str]:
             f"Time in current role: {low} months"
             + (f" to {high} months" if high else " or more")
         )
+    if icp.get("min_longest_tenure_years"):
+        years = icp["min_longest_tenure_years"]
+        unit = "year" if float(years) == 1 else "years"
+        items.append(f"Must have stayed somewhere at least {years:g} {unit}")
+    if icp.get("max_jobs_last_3_years"):
+        items.append(f"No more than {icp['max_jobs_last_3_years']} jobs in the last 3 years")
+    if icp.get("industries_prefer"):
+        items.append("Industries to favour: " + ", ".join(icp["industries_prefer"][:8]))
+    if icp.get("keywords_any"):
+        items.append("Look for any of: " + ", ".join(icp["keywords_any"][:10]))
     if icp.get("timezone_rule"):
         items.append(f"Working hours rule: {icp['timezone_rule']}")
     if icp.get("metro_priority"):
