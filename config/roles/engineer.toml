@@ -1,0 +1,183 @@
+# Engineer (senior end first).
+#
+# 21 initiatives sit on this seat and one person fills it. Bailey is a single
+# point of failure. Source: issues register i68, hiring-pack.md Part 3, and the
+# Hiring section of Google Doc 1QFk0YOeIHfC1N2S9pg8iyu9ZGerE-TBS6DpHcGZVjrw:
+# "one or two, preferably not junior, need more ops / general competence skills
+# than engineering skills, should be AI enabled and have startup experience,
+# remote, any region".
+
+[role]
+key            = "engineer"
+title          = "Engineer"
+status         = "live"
+seats          = 2
+seniority      = "senior"
+employment     = "contractor, full time, remote"
+comp           = "NEEDS_PETER"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/engineer"
+one_liner      = "Own the internal tooling that fifty people work in every day."
+sender         = "peter"
+template_dir   = "engineer"
+daily_cap      = 18
+target_list_size = 300
+
+[icp]
+# The doc says "remote, any region". Outbound email still runs US only,
+# because cold email is not lawful or not advisable elsewhere. Non-US
+# engineers come through job boards and inbound. See docs/COMPLIANCE.md.
+titles = [
+  "Software Engineer", "Senior Software Engineer", "Staff Software Engineer",
+  "Full Stack Engineer", "Backend Engineer", "Platform Engineer",
+  "Data Engineer", "Founding Engineer", "Technical Lead", "Engineering Lead",
+  "Head of Engineering", "CTO", "Solutions Engineer", "Forward Deployed Engineer",
+  "Internal Tools Engineer", "Automation Engineer", "GTM Engineer",
+]
+title_excludes = [
+  "Intern", "Junior", "Graduate", "Apprentice", "Student",
+  "Recruiter", "Sales Engineer", "Support Engineer", "QA Tester",
+]
+seniority              = ["senior", "staff", "lead", "principal", "cxo"]
+company_headcount      = [5, 300]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 5
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+
+keywords_any = [
+  "internal tools", "ops tooling", "data pipeline", "ETL", "integrations",
+  "founding engineer", "startup", "0 to 1", "zero to one", "automation",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.16
+kind   = "any_of"
+field  = "title"
+values = ["software engineer", "senior software engineer", "staff software engineer", "full stack engineer", "backend engineer", "platform engineer", "data engineer", "founding engineer", "technical lead", "engineering lead", "head of engineering", "cto", "internal tools engineer", "automation engineer", "gtm engineer", "forward deployed engineer"]
+
+[[signal]]
+key      = "startup_experience"
+weight   = 0.20
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["founding engineer", "first engineer", "seed stage", "series a", "early stage", "startup", "co.?founder", "employee #?\\d\\b", "0 to 1", "zero to one"]
+# The doc asks for startup experience explicitly.
+
+[[signal]]
+key      = "ops_and_general_competence"
+weight   = 0.20
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["internal tool", "ops tooling", "operations", "back office", "workflow", "process automation", "admin panel", "integration", "data pipeline", "reporting", "dashboard", "CRM", "ERP"]
+# The doc is explicit: more ops and general competence than esoteric skill.
+
+[[signal]]
+key      = "ai_enabled"
+weight   = 0.14
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["\\bLLM\\b", "GPT", "Claude", "Copilot", "Cursor", "AI agent", "prompt engineering", "RAG\\b", "OpenAI", "Anthropic", "AI.?assisted"]
+
+[[signal]]
+key      = "shipped_end_to_end"
+weight   = 0.14
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["built", "shipped", "launched", "designed and built", "owned the", "end to end", "from scratch"]
+
+[[signal]]
+key      = "headcount_band"
+weight   = 0.06
+kind     = "range"
+field    = "company_headcount"
+min      = 5
+max      = 300
+soft_max = 2000
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.06
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.04
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "too_junior"
+weight   = -0.20
+kind     = "regex_any"
+field    = "title"
+patterns = ["junior", "intern", "associate engineer", "graduate", "trainee", "apprentice"]
+
+[[signal]]
+key      = "research_only"
+weight   = -0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["PhD candidate", "research scientist", "publications", "postdoc"]
+# Not a reject. Esoteric skill is not what this seat needs.
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+
+[booking]
+# Questions on the booking form. These gate the call.
+questions = [
+  "What internal tool did you build that people used every day? What was it and who used it?",
+  "Describe how you use AI tools in your daily work.",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "founding-and-internal-tools-us"
+titles    = ["Founding Engineer", "Senior Software Engineer", "Staff Software Engineer", "Full Stack Engineer"]
+geo       = ["United States"]
+headcount = ["2-10", "11-50", "51-200"]
+seniority = ["Senior", "Staff", "Lead"]
+keywords  = "(\"internal tools\" OR \"ops tooling\" OR \"back office\" OR automation) AND (startup OR \"seed\" OR \"series a\")"
+target    = 350
+
+[[search]]
+name      = "gtm-and-forward-deployed-us"
+titles    = ["GTM Engineer", "Forward Deployed Engineer", "Solutions Engineer", "Automation Engineer"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200"]
+keywords  = "(python OR typescript OR \"no code\" OR API) AND (operations OR revenue OR workflow)"
+target    = 250
+
+[[search]]
+name      = "data-and-platform-us"
+titles    = ["Data Engineer", "Platform Engineer", "Technical Lead"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200"]
+keywords  = "(\"data pipeline\" OR warehouse OR dbt OR integrations) AND (built OR owned)"
+target    = 200

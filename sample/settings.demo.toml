@@ -1,0 +1,87 @@
+# Demo settings. Everything here is fake but valid, so the pipeline runs end
+# to end with no API keys and no network:
+#
+#     python3 -m outbound demo
+#
+# Do not send from this file. The identity block is invented.
+
+[identity]
+sending_domain  = "hiring.example"
+from_name       = "Peter"
+from_email      = "peter@hiring.example"
+reply_to        = "peter@hiring.example"
+postal_address  = "1 Example Street, Suite 200, Austin, TX 78701, USA"
+careers_page    = "https://hiring.example/careers"
+unsubscribe_url = "https://hiring.example/unsubscribe?e={email_token}"
+
+[sending]
+per_mailbox_per_day = 18
+mailboxes           = 2
+step_gap_days       = [0, 4, 8]
+skip_weekdays       = [5, 6]
+send_window         = ["08:30", "16:30"]
+timezone            = "America/New_York"
+stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
+
+[warmup]
+min_domain_age_days = 14
+require_warmup_done = false
+
+[booking]
+screener_url      = "https://cal.example/peter/screener-10min"
+screener_minutes  = 10
+cancel_lead_hours = 12
+recheck_min_score = 0.55
+
+[compliance]
+allow_countries   = ["US"]
+block_countries   = ["CA", "PL", "DE", "FR", "ES", "IT", "NL", "IE", "PT", "GB"]
+enforce_geo_block = true
+require_unsubscribe = true
+require_postal      = true
+
+[scoring]
+auto_reject_below   = 0.45
+auto_approve_above  = 0.80
+require_hand_review = true
+
+[providers]
+search  = "dryrun"
+enrich  = "dryrun"
+verify  = "dryrun"
+send    = "dryrun"
+booking = "dryrun"
+enrich_waterfall = []
+
+[limits]
+max_profiles_per_search = 1000
+max_enrich_per_run      = 250
+max_sends_per_run       = 60
+never_enrich_rejected   = true
+enrich_attempts         = 2
+
+[storage]
+db_path    = "data/demo/outbound.db"
+outbox_dir = "data/demo/outbox"
+export_dir = "data/demo/exports"
+
+# Comp and the job description URL live here, not in the committed role files.
+[role_overrides.head-of-operations]
+comp   = "$14,000 to $18,000 a month"
+jd_url = "https://hiring.example/roles/head-of-operations"
+
+[role_overrides.engineer]
+comp   = "$11,000 to $15,000 a month"
+jd_url = "https://hiring.example/roles/engineer"
+
+[role_overrides.ops-generalist]
+comp   = "$5,000 to $8,000 a month"
+jd_url = "https://hiring.example/roles/operations"
+
+[role_overrides.controller]
+comp   = "$12,000 to $16,000 a month"
+jd_url = "https://hiring.example/roles/controller"
+
+[role_overrides.brand-and-funnel]
+comp   = "$8,000 to $12,000 a month"
+jd_url = "https://hiring.example/roles/brand-and-funnel"

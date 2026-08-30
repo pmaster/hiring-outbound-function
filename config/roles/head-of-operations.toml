@@ -1,0 +1,209 @@
+# Head of Operations / COO / VP Ops.
+#
+# The seat that matters. Peter has looked for 1.5 to 2 years and made four
+# failed attempts. Source: brain projects/sunbird/hiring-pack.md.
+#
+# Sources for this ICP: projects/sunbird/outbound-recruiting-sop.md section 3,
+# projects/sunbird/hiring-pack.md Part 3, and the Ops / HoP Role section of the
+# hiring Google Doc 1QFk0YOeIHfC1N2S9pg8iyu9ZGerE-TBS6DpHcGZVjrw.
+
+[role]
+key            = "head-of-operations"
+title          = "Head of Operations"
+status         = "live"
+seats          = 1
+seniority      = "senior"
+employment     = "contractor, full time, remote"
+# NEEDS PETER: confirm contractor vs fractional. hiring-pack.md leaves it open.
+comp           = "NEEDS_PETER"
+comp_in_email  = true      # A senior operator will not answer a blind approach.
+jd_url         = "https://CHANGEME.example/roles/head-of-operations"
+one_liner      = "Own how the company runs, so the founder can stop being the operating system."
+sender         = "peter"   # Peter sends this one himself. Do not delegate it.
+template_dir   = "head-of-operations"
+daily_cap      = 18
+target_list_size = 300     # hand-checked, not filtered
+
+[icp]
+titles = [
+  "Head of Operations",
+  "Director of Operations",
+  "VP Operations",
+  "VP of Operations",
+  "Vice President of Operations",
+  "Chief Operating Officer",
+  "COO",
+  "General Manager",
+  "Chief of Staff",
+  "Head of Business Operations",
+  "Director of Business Operations",
+]
+title_excludes = [
+  "Operations Associate",
+  "Operations Coordinator",
+  "Operations Analyst",
+  "Warehouse",
+  "Retail Store Manager",
+  "Restaurant Manager",
+  "Nurse",
+  "Clinical",
+  "Intern",
+]
+seniority         = ["director", "vp", "cxo", "owner", "partner"]
+company_headcount = [30, 300]   # below 30 they never ran a department; above 300 the system existed already
+geo               = ["United States"]
+geo_exclude       = ["Canada", "European Union", "Poland"]
+min_years_experience   = 7
+min_months_in_role     = 18
+max_months_in_role     = 60
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 3
+
+keywords_any = [
+  "built", "stood up", "set up", "from scratch", "first hire", "founding",
+  "scaled", "SOP", "process design", "systems", "P&L", "cross functional",
+]
+industries_prefer = [
+  "Internet", "Financial Services", "Staffing and Recruiting", "Logistics",
+  "Marketplace", "Fintech", "Gaming", "E-learning", "Health Tech",
+]
+
+# Signals. Weights are relative and are normalised at scoring time.
+# kind: any_of | none_of | regex_any | range | min_value | max_value | present
+[[signal]]
+key      = "title_match"
+weight   = 0.20
+kind     = "any_of"
+field    = "title"
+values   = ["head of operations", "director of operations", "vp operations", "svp operations", "evp operations", "senior vice president of operations", "head of ops", "director of ops", "vice president of operations", "chief operating officer", "coo", "general manager", "chief of staff", "head of business operations", "director of business operations", "vp of operations"]
+
+[[signal]]
+key      = "headcount_band"
+weight   = 0.14
+kind     = "range"
+field    = "company_headcount"
+min      = 30
+max      = 300
+# Partial credit outside the band rather than zero.
+soft_min = 15
+soft_max = 800
+
+[[signal]]
+key      = "built_not_maintained"
+weight   = 0.22
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["built", "stood up", "set up", "from scratch", "founded", "first \\w+ hire", "launched", "created the", "designed the", "introduced the"]
+# The whole edge. The profile must show the person made something that did
+# not exist before.
+
+[[signal]]
+key      = "owned_a_whole_function"
+weight   = 0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["owned", "accountable for", "P&L", "reported to the (CEO|founder)", "led \\d+", "team of \\d+", "department"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.12
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 3.0
+soft_min = 1.5
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.08
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "time_in_seat"
+weight   = 0.06
+kind     = "range"
+field    = "months_in_current_role"
+min      = 18
+max      = 60
+soft_min = 9
+soft_max = 96
+
+[[signal]]
+key      = "domain_interest"
+weight   = 0.06
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["gambling", "sports betting", "igaming", "casino", "poker", "advantage play", "trading", "prop firm", "arbitrage", "sportsbook"]
+# Genuine domain interest is a strong predictor of discretionary effort.
+# hiring-pack.md Part 1.
+
+[[signal]]
+key      = "agency_only"
+weight   = -0.15
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["management consultant", "consulting associate", "\\bMBB\\b", "advisory practice", "fractional (COO|operations)"]
+# Not a hard cut. Pure consultancy with no operating seat is a reject, but
+# a consultant who later ran operations is a strong candidate. Send it to
+# hand review rather than dropping it.
+
+# Hard disqualifiers. A match sets the score to zero and the stage to rejected.
+[[disqualifier]]
+key      = "no_linkedin"
+kind     = "missing"
+field    = "linkedin_url"
+reason   = "No profile to hand check. The hand check is the edge."
+
+[[disqualifier]]
+key      = "blocked_geo"
+kind     = "country_blocked"
+field    = "country"
+reason   = "Cold email is not lawful or not advisable in this country. See docs/COMPLIANCE.md."
+
+[[disqualifier]]
+key      = "current_or_former_staff"
+kind     = "suppressed"
+field    = "linkedin_url"
+reason   = "On the suppression list."
+
+# Questions on the booking form. These gate the call. Do not let everyone
+# book and then cancel the bad fits; that makes angry people.
+
+# LinkedIn and Sales Navigator saved searches. `outbound search` turns these
+# into URLs you can paste, and into provider queries where a provider is set.
+[booking]
+# Questions on the booking form. These gate the call.
+questions = [
+  "How many years did you own operations for a whole company, not a team inside one?",
+  "What did you build that did not exist before you arrived? Two or three sentences.",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "ops-leaders-us-30-300"
+titles    = ["Head of Operations", "Director of Operations", "VP Operations", "Chief Operating Officer"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Director", "VP", "CXO"]
+keywords  = "(built OR \"stood up\" OR \"from scratch\" OR \"set up\") NOT (recruiter OR agency)"
+target    = 400
+
+[[search]]
+name      = "chief-of-staff-us"
+titles    = ["Chief of Staff", "Head of Business Operations", "Director of Business Operations"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Director", "VP"]
+keywords  = "(operations OR process OR systems) AND (built OR launched)"
+target    = 250
+
+[[search]]
+name      = "gm-operator-us"
+titles    = ["General Manager", "Managing Director"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200"]
+keywords  = "(P&L OR \"general manager\") AND (built OR scaled)"
+target    = 250

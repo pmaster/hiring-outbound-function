@@ -1,0 +1,507 @@
+"""SQLite storage. One file, no server, no migrations tool.
+
+The database is the state of the funnel. Every command reads and writes here,
+so a run can stop at any point and resume without losing work.
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from pathlib import Path
+from typing import Any, Iterable, Sequence
+
+from .util import iso, norm_email, norm_linkedin, now
+
+SCHEMA_VERSION = 1
+
+# The funnel, in order. `stage_index` uses this, so keep it ordered.
+STAGES = [
+    "sourced",     # pulled from a search, not yet scored
+    "scored",      # scored, awaiting routing
+    "rejected",    # below the bar or disqualified. Terminal.
+    "review",      # in the hand review queue
+    "approved",    # cleared for enrichment
+    "enriched",    # has at least one candidate email address
+    "verified",    # address passed verification
+    "queued",      # message rendered, waiting to send
+    "sent",        # at least one message sent
+    "replied",     # replied to any message
+    "booked",      # booked the screener
+    "confirmed",   # booking survived the pre call re check
+    "cancelled",   # booking cancelled by us. Terminal for this role.
+    "screened",    # screener call happened
+    "hired",       # terminal, good
+    "bounced",     # terminal, bad address
+    "unsubscribed",  # terminal, do not contact
+    "stopped",     # terminal, stopped by hand
+]
+TERMINAL_STAGES = {"rejected", "cancelled", "hired", "bounced", "unsubscribed", "stopped"}
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS candidates (
+    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_key                 TEXT NOT NULL,
+    linkedin_key             TEXT NOT NULL,
+    linkedin_url             TEXT,
+    full_name                TEXT,
+    first_name               TEXT,
+    last_name                TEXT,
+    headline                 TEXT,
+    title                    TEXT,
+    company                  TEXT,
+    company_domain           TEXT,
+    company_headcount        INTEGER,
+    location                 TEXT,
+    country                  TEXT,
+    years_experience         REAL,
+    months_in_current_role   REAL,
+    jobs_last_3_years        INTEGER,
+    longest_tenure_years     REAL,
+    profile_text             TEXT,
+    profile_json             TEXT,
+    source                   TEXT,
+    source_search            TEXT,
+    sourced_at               TEXT,
+    score                    REAL,
+    score_json               TEXT,
+    stage                    TEXT NOT NULL DEFAULT 'sourced',
+    review_state             TEXT NOT NULL DEFAULT 'pending',
+    review_note              TEXT,
+    personal_note            TEXT,
+    updated_at               TEXT,
+    UNIQUE (role_key, linkedin_key)
+);
+CREATE INDEX IF NOT EXISTS idx_candidates_stage ON candidates (role_key, stage);
+CREATE INDEX IF NOT EXISTS idx_candidates_score ON candidates (role_key, score DESC);
+
+CREATE TABLE IF NOT EXISTS emails (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_id   INTEGER NOT NULL REFERENCES candidates (id) ON DELETE CASCADE,
+    address        TEXT NOT NULL,
+    provider       TEXT,
+    confidence     REAL,
+    verify_status  TEXT NOT NULL DEFAULT 'unknown',
+    verify_provider TEXT,
+    verified_at    TEXT,
+    is_primary     INTEGER NOT NULL DEFAULT 0,
+    found_at       TEXT,
+    UNIQUE (candidate_id, address)
+);
+CREATE INDEX IF NOT EXISTS idx_emails_address ON emails (address);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_id  INTEGER NOT NULL REFERENCES candidates (id) ON DELETE CASCADE,
+    role_key      TEXT NOT NULL,
+    step          INTEGER NOT NULL,
+    to_address    TEXT NOT NULL,
+    subject       TEXT NOT NULL,
+    body          TEXT NOT NULL,
+    rendered_at   TEXT,
+    send_after    TEXT,
+    sent_at       TEXT,
+    provider      TEXT,
+    provider_id   TEXT,
+    status        TEXT NOT NULL DEFAULT 'queued',
+    error         TEXT,
+    UNIQUE (candidate_id, step)
+);
+CREATE INDEX IF NOT EXISTS idx_messages_status ON messages (role_key, status, send_after);
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_id    INTEGER REFERENCES candidates (id) ON DELETE SET NULL,
+    role_key        TEXT,
+    provider        TEXT NOT NULL,
+    provider_id     TEXT NOT NULL,
+    attendee_name   TEXT,
+    attendee_email  TEXT,
+    start_at        TEXT,
+    end_at          TEXT,
+    answers_json    TEXT,
+    status          TEXT NOT NULL DEFAULT 'booked',
+    recheck_score   REAL,
+    recheck_verdict TEXT,
+    recheck_note    TEXT,
+    cancelled_at    TEXT,
+    created_at      TEXT,
+    UNIQUE (provider, provider_id)
+);
+
+CREATE TABLE IF NOT EXISTS suppression (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind       TEXT NOT NULL,
+    value      TEXT NOT NULL,
+    reason     TEXT,
+    added_at   TEXT,
+    UNIQUE (kind, value)
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts           TEXT NOT NULL,
+    candidate_id INTEGER,
+    role_key     TEXT,
+    kind         TEXT NOT NULL,
+    detail       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_events_candidate ON events (candidate_id, ts);
+
+CREATE TABLE IF NOT EXISTS runs (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts        TEXT NOT NULL,
+    command   TEXT NOT NULL,
+    args      TEXT,
+    summary   TEXT,
+    dry_run   INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS send_log (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    day       TEXT NOT NULL,
+    role_key  TEXT NOT NULL,
+    mailbox   TEXT NOT NULL DEFAULT 'default',
+    count     INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (day, role_key, mailbox)
+);
+"""
+
+
+def stage_index(stage: str) -> int:
+    try:
+        return STAGES.index(stage)
+    except ValueError:
+        return -1
+
+
+class Database:
+    """Thin wrapper over sqlite3. Rows come back as dicts."""
+
+    def __init__(self, path: Path | str):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(self.path)
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA foreign_keys = ON")
+        self.conn.execute("PRAGMA journal_mode = WAL")
+
+    # ---- lifecycle -------------------------------------------------
+
+    def init_schema(self) -> None:
+        self.conn.executescript(SCHEMA)
+        self.conn.execute(
+            "INSERT INTO meta (key, value) VALUES ('schema_version', ?) "
+            "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            (str(SCHEMA_VERSION),),
+        )
+        self.conn.commit()
+
+    def close(self) -> None:
+        self.conn.commit()
+        self.conn.close()
+
+    def __enter__(self) -> "Database":
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
+
+    # ---- helpers ---------------------------------------------------
+
+    def query(self, sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]:
+        cur = self.conn.execute(sql, params)
+        return [dict(row) for row in cur.fetchall()]
+
+    def one(self, sql: str, params: Sequence[Any] = ()) -> dict[str, Any] | None:
+        rows = self.query(sql, params)
+        return rows[0] if rows else None
+
+    def execute(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Cursor:
+        cur = self.conn.execute(sql, params)
+        self.conn.commit()
+        return cur
+
+    def scalar(self, sql: str, params: Sequence[Any] = ()) -> Any:
+        cur = self.conn.execute(sql, params)
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    # ---- candidates ------------------------------------------------
+
+    def upsert_candidate(self, role_key: str, profile: dict[str, Any]) -> tuple[int, bool]:
+        """Insert or update one candidate. Returns (id, created).
+
+        Dedupe key is the normalised LinkedIn URL within a role. The same
+        person may legitimately sit in two roles; that is two rows.
+        """
+        key = norm_linkedin(profile.get("linkedin_url"))
+        if not key:
+            key = "noli:" + (profile.get("external_id") or profile.get("full_name") or "").strip().lower()
+        existing = self.one(
+            "SELECT id FROM candidates WHERE role_key = ? AND linkedin_key = ?",
+            (role_key, key),
+        )
+        payload = {
+            "role_key": role_key,
+            "linkedin_key": key,
+            "linkedin_url": profile.get("linkedin_url"),
+            "full_name": profile.get("full_name"),
+            "first_name": profile.get("first_name"),
+            "last_name": profile.get("last_name"),
+            "headline": profile.get("headline"),
+            "title": profile.get("title"),
+            "company": profile.get("company"),
+            "company_domain": profile.get("company_domain"),
+            "company_headcount": profile.get("company_headcount"),
+            "location": profile.get("location"),
+            "country": profile.get("country"),
+            "years_experience": profile.get("years_experience"),
+            "months_in_current_role": profile.get("months_in_current_role"),
+            "jobs_last_3_years": profile.get("jobs_last_3_years"),
+            "longest_tenure_years": profile.get("longest_tenure_years"),
+            "profile_text": profile.get("profile_text"),
+            "profile_json": json.dumps(profile.get("raw") or profile, ensure_ascii=False),
+            "source": profile.get("source"),
+            "source_search": profile.get("source_search"),
+            "updated_at": iso(),
+        }
+        if existing:
+            sets = ", ".join(f"{k} = ?" for k in payload if k not in ("role_key", "linkedin_key"))
+            values = [v for k, v in payload.items() if k not in ("role_key", "linkedin_key")]
+            self.conn.execute(
+                f"UPDATE candidates SET {sets} WHERE id = ?", (*values, existing["id"])
+            )
+            self.conn.commit()
+            return int(existing["id"]), False
+        payload["sourced_at"] = iso()
+        payload["stage"] = "sourced"
+        cols = ", ".join(payload)
+        marks = ", ".join("?" for _ in payload)
+        cur = self.conn.execute(
+            f"INSERT INTO candidates ({cols}) VALUES ({marks})", tuple(payload.values())
+        )
+        self.conn.commit()
+        return int(cur.lastrowid), True
+
+    def set_stage(self, candidate_id: int, stage: str, note: str = "") -> None:
+        if stage not in STAGES:
+            raise ValueError(f"unknown stage {stage!r}")
+        self.conn.execute(
+            "UPDATE candidates SET stage = ?, updated_at = ? WHERE id = ?",
+            (stage, iso(), candidate_id),
+        )
+        self.conn.commit()
+        self.log_event(candidate_id, f"stage:{stage}", note)
+
+    def candidates(
+        self,
+        role_key: str | None = None,
+        stages: Iterable[str] | None = None,
+        limit: int | None = None,
+        order: str = "score DESC, id ASC",
+    ) -> list[dict[str, Any]]:
+        clauses, params = [], []
+        if role_key:
+            clauses.append("role_key = ?")
+            params.append(role_key)
+        stage_list = list(stages) if stages else []
+        if stage_list:
+            clauses.append(f"stage IN ({', '.join('?' for _ in stage_list)})")
+            params.extend(stage_list)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = f"SELECT * FROM candidates {where} ORDER BY {order}"
+        if limit:
+            sql += f" LIMIT {int(limit)}"
+        return self.query(sql, params)
+
+    def candidate(self, candidate_id: int) -> dict[str, Any] | None:
+        return self.one("SELECT * FROM candidates WHERE id = ?", (candidate_id,))
+
+    # ---- emails ----------------------------------------------------
+
+    def add_email(
+        self,
+        candidate_id: int,
+        address: str,
+        provider: str = "",
+        confidence: float | None = None,
+        primary: bool = True,
+    ) -> int | None:
+        address = norm_email(address)
+        if not address:
+            return None
+        self.conn.execute(
+            "INSERT INTO emails (candidate_id, address, provider, confidence, is_primary, found_at) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT (candidate_id, address) DO UPDATE SET "
+            "provider = excluded.provider, confidence = excluded.confidence",
+            (candidate_id, address, provider, confidence, 1 if primary else 0, iso()),
+        )
+        self.conn.commit()
+        row = self.one(
+            "SELECT id FROM emails WHERE candidate_id = ? AND address = ?",
+            (candidate_id, address),
+        )
+        return int(row["id"]) if row else None
+
+    def primary_email(self, candidate_id: int) -> dict[str, Any] | None:
+        return self.one(
+            # Verification outranks the is_primary flag. is_primary only means
+            # "found first", and a checked address beats a first guess.
+            "SELECT * FROM emails WHERE candidate_id = ? "
+            "ORDER BY CASE verify_status "
+            "WHEN 'valid' THEN 0 WHEN 'unknown' THEN 1 WHEN 'catch_all' THEN 2 "
+            "WHEN 'risky' THEN 3 ELSE 4 END, "
+            "is_primary DESC, COALESCE(confidence, 0) DESC, id ASC LIMIT 1",
+            (candidate_id,),
+        )
+
+    def set_verify(self, email_id: int, status: str, provider: str = "") -> None:
+        self.conn.execute(
+            "UPDATE emails SET verify_status = ?, verify_provider = ?, verified_at = ? WHERE id = ?",
+            (status, provider, iso(), email_id),
+        )
+        self.conn.commit()
+
+    # ---- suppression -----------------------------------------------
+
+    def suppress(self, kind: str, value: str, reason: str = "") -> None:
+        value = value.strip().lower()
+        if kind == "email":
+            value = norm_email(value)
+        elif kind == "linkedin":
+            value = norm_linkedin(value)
+        if not value:
+            return
+        self.conn.execute(
+            "INSERT INTO suppression (kind, value, reason, added_at) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT (kind, value) DO UPDATE SET reason = excluded.reason",
+            (kind, value, reason, iso()),
+        )
+        self.conn.commit()
+
+    def is_suppressed(self, kind: str, value: str) -> dict[str, Any] | None:
+        value = (value or "").strip().lower()
+        if kind == "email":
+            value = norm_email(value)
+        elif kind == "linkedin":
+            value = norm_linkedin(value)
+        if not value:
+            return None
+        hit = self.one(
+            "SELECT * FROM suppression WHERE kind = ? AND value = ?", (kind, value)
+        )
+        if hit:
+            return hit
+        if kind == "email" and "@" in value:
+            return self.one(
+                "SELECT * FROM suppression WHERE kind = 'domain' AND value = ?",
+                (value.split("@", 1)[1],),
+            )
+        return None
+
+    # ---- messages --------------------------------------------------
+
+    def queue_message(
+        self,
+        candidate_id: int,
+        role_key: str,
+        step: int,
+        to_address: str,
+        subject: str,
+        body: str,
+        send_after: str,
+    ) -> int:
+        self.conn.execute(
+            "INSERT INTO messages "
+            "(candidate_id, role_key, step, to_address, subject, body, rendered_at, send_after, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued') "
+            "ON CONFLICT (candidate_id, step) DO UPDATE SET "
+            "to_address = excluded.to_address, subject = excluded.subject, "
+            "body = excluded.body, rendered_at = excluded.rendered_at, "
+            "send_after = excluded.send_after "
+            "WHERE messages.status = 'queued'",
+            (candidate_id, role_key, step, norm_email(to_address), subject, body, iso(), send_after),
+        )
+        self.conn.commit()
+        row = self.one(
+            "SELECT id FROM messages WHERE candidate_id = ? AND step = ?",
+            (candidate_id, step),
+        )
+        return int(row["id"]) if row else 0
+
+    def mark_sent(self, message_id: int, provider: str, provider_id: str = "") -> None:
+        self.conn.execute(
+            "UPDATE messages SET status = 'sent', sent_at = ?, provider = ?, provider_id = ? WHERE id = ?",
+            (iso(), provider, provider_id, message_id),
+        )
+        self.conn.commit()
+
+    def mark_failed(self, message_id: int, error: str) -> None:
+        self.conn.execute(
+            "UPDATE messages SET status = 'failed', error = ? WHERE id = ?",
+            (error[:500], message_id),
+        )
+        self.conn.commit()
+
+    # ---- send accounting -------------------------------------------
+
+    def sends_today(self, role_key: str, day: str, mailbox: str = "default") -> int:
+        row = self.one(
+            "SELECT count FROM send_log WHERE day = ? AND role_key = ? AND mailbox = ?",
+            (day, role_key, mailbox),
+        )
+        return int(row["count"]) if row else 0
+
+    def record_send(self, role_key: str, day: str, mailbox: str = "default", n: int = 1) -> None:
+        self.conn.execute(
+            "INSERT INTO send_log (day, role_key, mailbox, count) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT (day, role_key, mailbox) DO UPDATE SET count = count + excluded.count",
+            (day, role_key, mailbox, n),
+        )
+        self.conn.commit()
+
+    # ---- events and runs -------------------------------------------
+
+    def log_event(self, candidate_id: int | None, kind: str, detail: str = "") -> None:
+        role_key = None
+        if candidate_id:
+            row = self.one("SELECT role_key FROM candidates WHERE id = ?", (candidate_id,))
+            role_key = row["role_key"] if row else None
+        self.conn.execute(
+            "INSERT INTO events (ts, candidate_id, role_key, kind, detail) VALUES (?, ?, ?, ?, ?)",
+            (iso(), candidate_id, role_key, kind, detail[:2000]),
+        )
+        self.conn.commit()
+
+    def log_run(self, command: str, args: str, summary: str, dry_run: bool) -> None:
+        self.conn.execute(
+            "INSERT INTO runs (ts, command, args, summary, dry_run) VALUES (?, ?, ?, ?, ?)",
+            (iso(), command, args[:2000], summary[:2000], 1 if dry_run else 0),
+        )
+        self.conn.commit()
+
+    # ---- reporting -------------------------------------------------
+
+    def funnel(self, role_key: str | None = None) -> dict[str, int]:
+        rows = self.query(
+            "SELECT stage, COUNT(*) AS n FROM candidates "
+            + ("WHERE role_key = ? " if role_key else "")
+            + "GROUP BY stage",
+            (role_key,) if role_key else (),
+        )
+        counts = {row["stage"]: int(row["n"]) for row in rows}
+        return {stage: counts.get(stage, 0) for stage in STAGES}
+
+
+def open_db(path: Path | str, init: bool = True) -> Database:
+    db = Database(path)
+    if init:
+        db.init_schema()
+    return db

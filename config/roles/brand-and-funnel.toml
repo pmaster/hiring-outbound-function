@@ -1,0 +1,140 @@
+# Brand and Funnel. DRAFT.
+#
+# 12 items, 7 of them on Peter today. The largest block of his time that a
+# single hire removes outright. Owns the new brand build (i01), funnel v2
+# (i06), the staffing brand (i04), the VSL (i05), the rejection experience for
+# 30,000 applicants a month (i09), the reviews plan (i08) and launch QA (i98).
+#
+# status = "draft". Flip to "live" when comp and the JD are settled.
+
+[role]
+key            = "brand-and-funnel"
+title          = "Head of Brand and Funnel"
+status         = "draft"
+seats          = 1
+seniority      = "senior"
+employment     = "contractor, full time, remote"
+comp           = "NEEDS_PETER"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/brand-and-funnel"
+one_liner      = "Own every conversion step from the ad to the offer."
+sender         = "peter"
+template_dir   = "brand-and-funnel"
+daily_cap      = 15
+target_list_size = 300
+
+[icp]
+titles = [
+  "Head of Growth", "Director of Growth", "VP Growth", "Growth Lead",
+  "Head of Brand", "Director of Brand", "Brand Manager",
+  "Head of Marketing", "Director of Marketing", "VP Marketing",
+  "Conversion Rate Optimization", "Head of Performance Marketing",
+  "Director of Demand Generation", "Funnel Manager", "Head of Acquisition",
+]
+title_excludes = ["Intern", "Social Media Coordinator", "Content Writer", "Graphic Designer", "Community Manager"]
+seniority              = ["manager", "director", "vp", "cxo"]
+company_headcount      = [10, 500]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 5
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+
+keywords_any = ["landing page", "conversion rate", "funnel", "VSL", "paid acquisition", "CPA", "creative testing", "brand launch"]
+
+[[signal]]
+key    = "title_match"
+weight = 0.20
+kind   = "any_of"
+field  = "title"
+values = ["head of growth", "director of growth", "vp growth", "growth lead", "head of brand", "director of brand", "brand manager", "head of marketing", "director of marketing", "vp marketing", "head of performance marketing", "director of demand generation", "head of acquisition"]
+
+[[signal]]
+key      = "owns_conversion"
+weight   = 0.26
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["conversion rate", "\\bCRO\\b", "funnel", "landing page", "\\bCPA\\b", "cost per (acquisition|lead)", "A/B test", "split test", "lead to (call|booking)"]
+
+[[signal]]
+key      = "launched_a_brand"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["launched", "rebrand", "new brand", "brand launch", "positioning", "from scratch", "built the"]
+
+[[signal]]
+key      = "direct_response"
+weight   = 0.14
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["direct response", "\\bVSL\\b", "video sales letter", "performance marketing", "paid social", "media buying", "creative testing", "\\bDTC\\b", "info product", "lead gen"]
+
+[[signal]]
+key      = "high_volume_applicant_funnel"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["recruitment marketing", "employer brand", "applicant", "hiring funnel", "candidate experience", "marketplace supply"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.06
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.06
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "brand_only_no_numbers"
+weight   = -0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["brand storytelling", "brand voice", "community building", "influencer relations", "awards"]
+# Fine as a second skill. On its own it is the wrong half of this seat.
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+
+[booking]
+# Questions on the booking form. These gate the call.
+questions = [
+  "Name a funnel you rebuilt. What was the conversion rate before and after?",
+  "Have you launched a brand from nothing? What did you own?",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "growth-and-cro-us"
+titles    = ["Head of Growth", "Director of Growth", "Head of Acquisition", "Head of Performance Marketing"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200"]
+seniority = ["Manager", "Director", "VP"]
+keywords  = "(\"conversion rate\" OR funnel OR CRO OR \"landing page\") AND (built OR rebuilt OR launched)"
+target    = 300

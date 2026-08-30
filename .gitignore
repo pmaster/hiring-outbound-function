@@ -1,0 +1,21 @@
+# Secrets and local config. Never commit these.
+.env
+config/settings.toml
+config/settings.*.local.toml
+
+# Working data: the candidate database, rendered emails, exports.
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Lists you pulled down. They contain real people.
+lists/
+*.csv
+!sample/*.csv
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store

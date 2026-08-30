@@ -1,0 +1,142 @@
+# Controller. DRAFT.
+#
+# 18 items sit on this seat and nobody holds it. The heaviest vacancy on the
+# board. The priorities doc argues Controller before Engineer, because the USA
+# restart critical path (entity, EIN, bank) is Controller work.
+#
+# status = "draft" means `outbound send` refuses this role. Peter has not
+# confirmed it is an outbound seat, and the comp is unset. Flip to "live" when
+# both are settled.
+
+[role]
+key            = "controller"
+title          = "Controller"
+status         = "draft"
+seats          = 1
+seniority      = "senior"
+employment     = "contractor, full time, remote"
+comp           = "NEEDS_PETER"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/controller"
+one_liner      = "Build the finance function. There has never been an accounting pass."
+sender         = "peter"
+template_dir   = "controller"
+daily_cap      = 12
+target_list_size = 250
+
+[icp]
+titles = [
+  "Controller", "Financial Controller", "Assistant Controller",
+  "Director of Finance", "VP Finance", "Head of Finance",
+  "Chief Financial Officer", "CFO", "Finance Manager",
+  "Director of Accounting", "Head of Accounting",
+]
+title_excludes = ["Intern", "Staff Accountant", "Accounts Payable Clerk", "Bookkeeper", "Auditor at"]
+seniority              = ["manager", "director", "vp", "cxo"]
+company_headcount      = [20, 500]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 7
+min_months_in_role     = 18
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 3
+
+keywords_any = ["first finance hire", "built the finance function", "multi entity", "intercompany", "cash management", "treasury", "1099", "contractor payments"]
+
+[[signal]]
+key    = "title_match"
+weight = 0.22
+kind   = "any_of"
+field  = "title"
+values = ["controller", "financial controller", "svp finance", "head of finance and operations", "assistant controller", "director of finance", "vp finance", "head of finance", "chief financial officer", "cfo", "finance manager", "director of accounting", "head of accounting"]
+
+[[signal]]
+key      = "built_the_function"
+weight   = 0.24
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["first finance hire", "built the finance", "stood up", "from scratch", "implemented (NetSuite|QuickBooks|Xero|Sage)", "first close", "established"]
+
+[[signal]]
+key      = "multi_entity_and_treasury"
+weight   = 0.20
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["multi.?entity", "intercompany", "treasury", "cash management", "consolidat", "transfer pricing", "cross.?border"]
+
+[[signal]]
+key      = "contractor_heavy_payroll"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["1099", "contractor payments", "gig", "marketplace payouts", "payout", "high volume payments"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.10
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 3.0
+soft_min = 1.5
+
+[[signal]]
+key      = "headcount_band"
+weight   = 0.08
+kind     = "range"
+field    = "company_headcount"
+min      = 20
+max      = 500
+soft_max = 2000
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.06
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "big4_only"
+weight   = -0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["Deloitte", "PricewaterhouseCoopers", "\\bPwC\\b", "Ernst & Young", "\\bKPMG\\b", "external audit"]
+# Audit only, no operating seat, is a poor fit. Hand review, not a reject.
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+
+[booking]
+# Questions on the booking form. These gate the call.
+questions = [
+  "Have you built a finance function from nothing? What existed when you arrived and what existed when you left?",
+  "Describe your experience with multi entity structures and intercompany agreements.",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "first-finance-hire-us"
+titles    = ["Controller", "Financial Controller", "Director of Finance", "Head of Finance"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Manager", "Director", "VP"]
+keywords  = "(\"first finance hire\" OR \"built the finance function\" OR \"from scratch\") NOT (audit OR intern)"
+target    = 250

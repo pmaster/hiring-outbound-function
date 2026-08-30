@@ -1,0 +1,95 @@
+# Outbound recruiting - global settings.
+#
+# Copy to config/settings.toml and edit. Never commit config/settings.toml.
+# Secrets do NOT go here. Put secrets in .env (see .env.example).
+
+[identity]
+# The brand that sends. This must NOT be viewlineventures.com or
+# sunbirdsystems.com. See docs/OPSEC.md for why.
+sending_domain    = "CHANGEME.example"
+from_name         = "CHANGEME"
+from_email        = "CHANGEME@CHANGEME.example"
+reply_to          = "CHANGEME@CHANGEME.example"
+# CAN-SPAM requires a real postal address in every commercial email.
+postal_address    = "CHANGEME Street, CHANGEME City, ST 00000, USA"
+careers_page      = "https://CHANGEME.example/careers"
+unsubscribe_url   = "https://CHANGEME.example/unsubscribe?e={email_token}"
+
+[sending]
+# Emails per mailbox per working day. Keep low. 15-20 is the founder-send
+# shape from the SOP; 40 is the ceiling for a warmed mailbox.
+per_mailbox_per_day = 18
+mailboxes           = 2
+# Days between sequence steps.
+step_gap_days       = [0, 4, 8]
+# Do not send on these weekdays (0 = Monday).
+skip_weekdays       = [5, 6]
+# Local send window, 24h clock, in the sender's timezone.
+send_window         = ["08:30", "16:30"]
+timezone            = "America/New_York"
+# Stop the whole sequence for a person once any of these happen.
+stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
+
+[warmup]
+# Refuse to send until the domain has been sending this long.
+min_domain_age_days   = 14
+# Refuse to send until a mailbox has completed warmup.
+require_warmup_done   = true
+
+[booking]
+# The 10 minute screener.
+screener_url        = "https://cal.com/CHANGEME/screener-10min"
+screener_minutes    = 10
+# Cancel a booking no later than this many hours before it starts.
+cancel_lead_hours   = 12
+# Re-score a booker against the role ICP before the call. Below this, cancel.
+recheck_min_score   = 0.55
+
+[compliance]
+# Countries we will cold email. US only by default.
+# CASL (Canada) requires consent. GDPR plus the Polish electronic services
+# act make EU cold email to individuals a bad idea. See docs/COMPLIANCE.md.
+allow_countries     = ["US"]
+block_countries     = ["CA", "PL", "DE", "FR", "ES", "IT", "NL", "IE", "PT", "SE", "DK", "FI", "NO", "AT", "BE", "CZ", "GR", "HU", "RO", "SK", "SI", "BG", "HR", "EE", "LV", "LT", "LU", "MT", "CY", "GB"]
+# Hard block. The pipeline refuses to queue a person in a blocked country
+# even if a role config allows it.
+enforce_geo_block   = true
+require_unsubscribe = true
+require_postal      = true
+
+[scoring]
+# A candidate below this is auto-rejected and never enriched.
+auto_reject_below   = 0.45
+# A candidate at or above this skips the hand review queue.
+auto_approve_above  = 0.80
+# Every candidate between the two goes to `outbound review`.
+# Hand review is the edge. Do not turn this off.
+require_hand_review = true
+
+[providers]
+# Which adapter to use for each stage. "dryrun" works with no API key and
+# no network, and is the default so the pipeline runs out of the box.
+search  = "dryrun"     # dryrun | apify | apollo | manual
+enrich  = "dryrun"     # dryrun | apollo | rocketreach | findymail | prospeo | dropcontact
+verify  = "dryrun"     # dryrun | millionverifier | neverbounce | zerobounce | none
+send    = "dryrun"     # dryrun | instantly | smartlead | smtp
+booking = "dryrun"     # dryrun | calcom | calendly | manual
+
+# Enrichment waterfall. Tried in order until one returns an address.
+# Overrides `providers.enrich` when non-empty.
+enrich_waterfall = []
+
+[limits]
+# Stop a run rather than burn credits on a misconfigured search.
+max_profiles_per_search   = 1000
+max_enrich_per_run        = 250
+max_sends_per_run         = 60
+# Refuse to enrich a candidate scored below auto_reject_below. Belt and braces.
+never_enrich_rejected     = true
+# Ask the enrichment waterfall this many times before giving up on a person.
+enrich_attempts           = 2
+
+[storage]
+db_path    = "data/outbound.db"
+outbox_dir = "data/outbox"
+export_dir = "data/exports"

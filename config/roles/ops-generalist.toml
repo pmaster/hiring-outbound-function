@@ -1,0 +1,173 @@
+# General ops / quant ops / chief of staff. Roughly four seats.
+#
+# From the Hiring section of Google Doc 1QFk0YOeIHfC1N2S9pg8iyu9ZGerE-TBS6DpHcGZVjrw:
+# "~4x general ops / quant ops / chief of staff. To slot in as a department
+# head, quant support, quant manager, TSS manager, client ops, project
+# management, quality assurance, customer service manager, customer service
+# ops, ops manager, knowledge base manager, over-the-counter manager, etc."
+#
+# One outbound list, several destination seats. Placement happens after the
+# screener, not before.
+
+[role]
+key            = "ops-generalist"
+title          = "Operations Manager"
+status         = "live"
+seats          = 4
+seniority      = "mid"
+employment     = "contractor, full time, remote"
+comp           = "NEEDS_PETER"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/operations"
+one_liner      = "Take a department that has no head and make it work."
+sender         = "recruiting"   # Not Peter. Volume seat, coordinator sends.
+template_dir   = "ops-generalist"
+daily_cap      = 25
+target_list_size = 600
+
+[icp]
+titles = [
+  "Operations Manager", "Business Operations Manager", "Operations Lead",
+  "Program Manager", "Project Manager", "Chief of Staff",
+  "Customer Operations Manager", "Support Operations Manager",
+  "Quality Assurance Manager", "Process Improvement Manager",
+  "Revenue Operations Manager", "Client Operations Manager",
+  "Knowledge Manager", "Operations Analyst", "Trading Operations",
+  "Back Office Manager", "Fraud Operations Manager", "Risk Operations Manager",
+]
+title_excludes = [
+  "Warehouse", "Field Operations", "Retail", "Restaurant", "Nurse",
+  "Clinical", "Driver", "Recruiter", "Intern", "Real Estate",
+]
+seniority              = ["manager", "senior", "lead", "director"]
+company_headcount      = [20, 1000]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 3
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+
+keywords_any = [
+  "SOP", "process", "workflow", "QA", "escalation", "playbook",
+  "documentation", "onboarding", "ticketing", "throughput", "error rate",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.20
+kind   = "any_of"
+field  = "title"
+values = ["operations manager", "business operations manager", "operations lead", "program manager", "project manager", "chief of staff", "customer operations manager", "support operations manager", "quality assurance manager", "process improvement manager", "revenue operations manager", "client operations manager", "back office manager", "fraud operations manager", "risk operations manager"]
+
+[[signal]]
+key      = "process_and_sop"
+weight   = 0.22
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["SOP", "standard operating", "process", "playbook", "documented", "workflow", "escalation", "runbook", "knowledge base"]
+
+[[signal]]
+key      = "measured_something"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["reduced \\d+%", "improved \\d+%", "increased \\d+%", "error rate", "SLA", "throughput", "cycle time", "KPI", "scorecard", "\\d+% "]
+# Someone who quotes a number they moved has probably moved one.
+
+[[signal]]
+key      = "built_not_maintained"
+weight   = 0.16
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["built", "stood up", "set up", "from scratch", "launched", "introduced", "created the", "first"]
+
+[[signal]]
+key      = "managed_people"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["managed \\d+", "team of \\d+", "led a team", "direct reports", "hired and trained"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.08
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.06
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "domain_interest"
+weight   = 0.08
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["gambling", "sports betting", "igaming", "casino", "poker", "trading", "payments", "fintech", "KYC", "AML", "fraud", "chargeback"]
+
+[[signal]]
+key      = "agency_or_staffing_only"
+weight   = -0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["staffing agency", "recruitment agency", "BPO account manager", "call centre agent", "call center agent"]
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+
+[booking]
+# Questions on the booking form. These gate the call.
+questions = [
+  "What process did you build or fix, and what number moved as a result?",
+  "Describe a time you caught a mistake nobody else caught.",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "ops-managers-us"
+titles    = ["Operations Manager", "Business Operations Manager", "Operations Lead"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Manager", "Senior", "Director"]
+keywords  = "(SOP OR process OR playbook OR \"error rate\") NOT (warehouse OR retail OR restaurant)"
+target    = 500
+
+[[search]]
+name      = "support-and-qa-ops-us"
+titles    = ["Customer Operations Manager", "Support Operations Manager", "Quality Assurance Manager"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+keywords  = "(ticketing OR escalation OR SLA OR QA) AND (built OR improved)"
+target    = 300
+
+[[search]]
+name      = "risk-fraud-payments-ops-us"
+titles    = ["Fraud Operations Manager", "Risk Operations Manager", "Payment Operations Manager", "Trading Operations"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+keywords  = "(KYC OR AML OR chargeback OR reconciliation OR settlement)"
+target    = 250
