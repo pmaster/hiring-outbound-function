@@ -154,6 +154,25 @@ def score_all(
             allowed_countries=allow or None,
         )
         target = route(outcome, scoring)
+        # Re-scoring must not undo a person's decision. `--restage` re-ranks
+        # after an ICP change, and a candidate who is already approved or
+        # further has had a human or the funnel act on them; moving them back
+        # to review or rejected would wipe that work and could walk a booked or
+        # sent person backwards. So the stage only changes while the person is
+        # still in a pre-decision stage; otherwise the score updates for
+        # reference and the stage is left where it is.
+        RESTAGEABLE = {"sourced", "scored", "review", "rejected"}
+        if restage and row["stage"] not in RESTAGEABLE:
+            db.execute(
+                "UPDATE candidates SET score = ?, score_json = ?, updated_at = ? WHERE id = ?",
+                (outcome.score, outcome.to_json(), iso(), row["id"]),
+            )
+            db.log_event(
+                int(row["id"]), "rescored",
+                f"{outcome.score:.3f} — stage {row['stage']} kept, decision already made",
+            )
+            result.bump(f"rescored:{row['stage']}")
+            continue
         db.execute(
             "UPDATE candidates SET score = ?, score_json = ?, stage = ?, updated_at = ? WHERE id = ?",
             (outcome.score, outcome.to_json(), target, iso(), row["id"]),

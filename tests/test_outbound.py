@@ -536,6 +536,34 @@ class TestPipeline(unittest.TestCase):
         result = pipeline.import_review(self.db, self.role, out)
         self.assertEqual(result.counts.get("refused"), 1)
 
+    def test_restage_does_not_undo_a_decision_or_walk_a_person_backwards(self):
+        """Re-scoring after an ICP change must not reset a hand approval or
+        move a booked/sent person back to review or rejected."""
+        self._seed()
+        review = self.db.candidates(self.role.key, stages=["review"])
+        self.assertGreaterEqual(len(review), 2)
+        approved_id = int(review[0]["id"])
+        self.db.set_stage(approved_id, "approved")
+        booked_id = int(review[1]["id"])
+        self.db.set_stage(booked_id, "booked")
+        result = pipeline.score_all(self.db, self.settings, self.role, restage=True)
+        self.assertEqual(self.db.candidate(approved_id)["stage"], "approved")
+        self.assertEqual(self.db.candidate(booked_id)["stage"], "booked")
+        # but the score was still refreshed for reference
+        self.assertIsNotNone(self.db.candidate(approved_id)["score"])
+        self.assertGreaterEqual(result.counts.get("rescored:approved", 0), 1)
+        self.assertGreaterEqual(result.counts.get("rescored:booked", 0), 1)
+
+    def test_restage_still_reranks_people_still_in_review(self):
+        self._seed()
+        review_before = {int(r["id"]) for r in self.db.candidates(self.role.key, stages=["review"])}
+        self.assertTrue(review_before)
+        pipeline.score_all(self.db, self.settings, self.role, restage=True)
+        # A review candidate can move to rejected or approved on a re-score,
+        # but only from review, never from a later stage.
+        for cid in review_before:
+            self.assertIn(self.db.candidate(cid)["stage"], ("review", "rejected", "approved"))
+
     def test_approving_without_a_note_is_refused(self):
         self._seed()
         row = self.db.candidates(self.role.key, stages=["review"])[0]
