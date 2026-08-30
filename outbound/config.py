@@ -312,6 +312,29 @@ def _booking_questions(data: dict[str, Any]) -> list[str]:
     return [str(q) for q in data.get("booking_questions", []) or []]
 
 
+def validate_comp_gate(role: "Role", where: str) -> None:
+    """The comp-confidence gate. Runs at parse time AND after settings
+    overrides, because status, comp_confidence and comp_in_email are all
+    overridable and a settings.toml that flips a draft role live (or claims
+    high confidence for a guess) must not slip a guessed salary into email 1.
+    An email cannot be recalled and the band is the first thing a senior
+    operator reads, so a wrong number is a retraction to a named person we
+    were trying to impress.
+    """
+    if role.comp_confidence not in {"high", "medium", "low", "unknown"}:
+        raise ConfigError(
+            f"{where}: role.comp_confidence is {role.comp_confidence!r}. "
+            f"Use high, medium, low or unknown. It comes from docs/COMP.md."
+        )
+    if role.is_live and role.comp_in_email and role.comp_confidence != "high":
+        raise ConfigError(
+            f"{where}: role is live and puts comp in email 1, but "
+            f"comp_confidence is {role.comp_confidence!r}. Only a band "
+            f"sourced from a document Peter wrote may be emailed. Get the "
+            f"number, or set status = \"draft\"."
+        )
+
+
 def load_role(path: Path) -> Role:
     data = _read_toml(path)
     block = data.get("role")
@@ -342,22 +365,7 @@ def load_role(path: Path) -> Role:
         raise ConfigError(
             f"{path}: role.status is {role.status!r}. Use live, draft, paused or closed."
         )
-    if role.comp_confidence not in {"high", "medium", "low", "unknown"}:
-        raise ConfigError(
-            f"{path}: role.comp_confidence is {role.comp_confidence!r}. "
-            f"Use high, medium, low or unknown. It comes from docs/COMP.md."
-        )
-    # A guessed salary must not go into a cold email. An email cannot be
-    # edited after it is sent and the number is the first thing a senior
-    # operator reads, so a wrong band is a retraction to a named person we
-    # were trying to impress. Five roles were live on a guess.
-    if role.is_live and role.comp_in_email and role.comp_confidence != "high":
-        raise ConfigError(
-            f"{path}: role is live and puts comp in email 1, but "
-            f"comp_confidence is {role.comp_confidence!r}. Only a band "
-            f"sourced from a document Peter wrote may be emailed. Get the "
-            f"number, or set status = \"draft\"."
-        )
+    validate_comp_gate(role, str(path))
     role.signals = [
         _parse_signal(item, key, i) for i, item in enumerate(data.get("signal", []))
     ]
@@ -467,6 +475,10 @@ def load_all(
     settings = load_settings(settings_path)
     roles = load_roles(roles_dir)
     apply_overrides(roles, settings)
+    # Overrides can flip status/comp_confidence/comp_in_email, so re-run the
+    # comp gate on the final state, not just the on-disk state.
+    for key, role in roles.items():
+        validate_comp_gate(role, f"[role_overrides.{key}] (after settings)")
     return settings, roles
 
 

@@ -35,7 +35,7 @@ The crawl found comp for most seats, but it does not agree with itself:
 Pick one number per seat and put it in `config/settings.toml`:
 
     [role_overrides.head-of-operations]
-    comp = "$135,000 to $175,000 plus equity"
+    comp = "$135,000 to $175,000 with performance upside"
 
 The demo file has invented numbers so the pipeline runs. They are not
 proposals. Replace them.

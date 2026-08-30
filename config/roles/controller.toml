@@ -1,12 +1,13 @@
-# Controller. DRAFT.
+# Controller. CLOSED 2026-08-30. Not a live search.
 #
 # 18 items sit on this seat and nobody holds it. The heaviest vacancy on the
 # board. The priorities doc argues Controller before Engineer, because the USA
 # restart critical path (entity, EIN, bank) is Controller work.
 #
-# status = "draft" means `outbound send` refuses this role. Peter has not
-# confirmed it is an outbound seat, and the comp is unset. Flip to "live" when
-# both are settled.
+# status = "closed": this is not a search. Peter, 2026-08-30: "we're not
+# really looking for a head of finance." The seat is being filled fractionally
+# (see the CLOSED note in the [role] block and docs/DECISIONS.md). Do not
+# reopen without Peter.
 
 [role]
 key            = "controller"
