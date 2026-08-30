@@ -54,7 +54,15 @@ def run_demo(reset: bool = True) -> int:
                 shutil.rmtree(directory)
     db = open_db(settings.db_path)
 
-    live_roles = [r for r in roles.values() if r.is_live]
+    # The sample profiles only cover three roles. Nine are configured; running
+    # all of them here would print six empty results and teach nothing.
+    demo_keys = ("head-of-operations", "engineer", "ops-generalist")
+    live_roles = [roles[k] for k in demo_keys if k in roles and roles[k].is_live]
+    other = [r.key for r in roles.values() if r.is_live and r.key not in demo_keys]
+    if other:
+        print(f"Nine roles are configured. This demo uses the three with sample data:")
+        print(f"  {', '.join(r.key for r in live_roles)}")
+        print(f"Also live, with no sample list: {', '.join(sorted(other))}")
 
     _banner("1. SOURCE. Pull profiles from the search provider (dryrun reads sample/profiles.jsonl).")
     for role in live_roles:
@@ -93,7 +101,41 @@ def run_demo(reset: bool = True) -> int:
     for role in live_roles:
         print(pipeline.send_due(db, settings, role, live=False))
 
-    _banner("8. BOOKINGS. Pull them in, then re-check each person against the ICP.")
+    _banner("8. REPLIES. Someone answers. Two of these need different handling.")
+    from unittest import mock
+
+    from . import replies as replies_mod
+
+    written = sorted(replies_mod.written_addresses(db))
+    if len(written) >= 3:
+        inbound = [
+            replies_mod.Inbound(
+                written[0], "Re: the seat",
+                "Interesting. I am not looking right now, but what is the comp?",
+                "2026-09-01",
+            ),
+            replies_mod.Inbound(
+                written[1], "Re: your note", "Please take me off this list.", "2026-09-01"
+            ),
+            replies_mod.Inbound(
+                "mailer-daemon@example.com", "Undelivered Mail Returned to Sender",
+                f"550 5.1.1 <{written[2]}>: Recipient address rejected: User unknown",
+                "2026-09-01",
+            ),
+        ]
+        with mock.patch.object(replies_mod, "fetch", lambda settings, since=None: inbound):
+            print(replies_mod.sync(db, settings))
+        print()
+        for row in db.inbox():
+            body = " ".join(str(row.get("body") or "").split())
+            print(f"  [{row['id']}] {row['kind']:12} {row.get('full_name') or row['from_address']}")
+            print(f"      {body[:76]}")
+        print()
+        print("  The reply is now out of the sequence, the opt out is suppressed, and")
+        print("  the bounced address is suppressed too. Nobody gets a follow up they")
+        print("  should not.")
+
+    _banner("9. BOOKINGS. Pull them in, then re-check each person against the ICP.")
     print(bookings_mod.sync(db, settings, roles))
     for item in bookings_mod.recheck(db, settings, roles):
         booking = item["booking"]
@@ -105,7 +147,23 @@ def run_demo(reset: bool = True) -> int:
     print()
     print(bookings_mod.triage(db, settings, roles, auto=True, live=False))
 
-    _banner("9. REPORT.")
+    _banner("10. AUDIT. Is this list ready to commit to?")
+    from .audit import audit_role
+
+    print(audit_role(db, settings, live_roles[0]))
+
+    _banner("11. EXPORT. Hand the good ones to the applicant tracking system.")
+    from .export import export
+
+    export_path = settings.export_dir / "demo-ats.csv"
+    count = export(db, settings, None, export_path, fmt="ats")
+    print(f"wrote {count} candidate(s) to {export_path}")
+    if count:
+        print()
+        print(export_path.read_text(encoding="utf-8").split("\n")[0])
+        print(export_path.read_text(encoding="utf-8").split("\n")[1][:150])
+
+    _banner("12. REPORT.")
     print(report.summary(db, settings, roles))
 
     outbox = settings.outbox_dir
@@ -115,6 +173,14 @@ def run_demo(reset: bool = True) -> int:
         print(files[0].read_text(encoding="utf-8"))
     print()
     print("Nothing was sent. Nothing left this machine.")
-    print("Next: `python3 -m outbound init`, fill in config/settings.toml, then `outbound doctor`.")
+    print()
+    print("Things this demo did not show, because they need the real world:")
+    print("  outbound dns viewlineventures.com   checks SPF, DKIM, DMARC and MX")
+    print("  outbound pages                      builds the careers site into site/")
+    print("  outbound show <id>                  everything about one person")
+    print("  outbound search <role>              the LinkedIn queries to run")
+    print()
+    print("Next: `python3 -m outbound init`, fill in config/settings.toml,")
+    print("then `outbound doctor` will tell you exactly what is still missing.")
     db.close()
     return 0
