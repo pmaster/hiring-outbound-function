@@ -412,3 +412,62 @@ metros.
 
 **To turn it back on**, three answers are needed: which seat this is,
 which title it posts under, and the band per metro.
+
+---
+
+## Recorded 2026-08-30: never mention equity
+
+Peter's ruling, verbatim: *"I don't think I've ever talked about equity. I
+don't think that is supposed to be mentioned... Never mention equity.
+It's not really something we're looking to do. Incentives on the upside
+are definitely possible."*
+
+Every equity line in this repo is gone, replaced with performance upside.
+The quotes further up this file that cite the March 2026 source document
+are **left as they are on purpose**: they record what that document says,
+and rewriting them would falsify the record. Do not re-derive an offer
+from them.
+
+The standing rule lives at
+`brain:projects/sunbird/hiring/common/hiring-system.md` §6 rule 3, and
+`brain:projects/sunbird/hiring/check.py` fails on the word.
+
+## Recorded 2026-08-30: the controller campaign is closed, not drafted
+
+Peter: *"we're not really looking for a head of finance."*
+
+`evidence/digests/03-peter-greg-drive-title-peter-greg.md` in the brain
+repo, created 2026-08-19 and modified 2026-08-25, is the newest document
+in the corpus. It records a named candidate proposing **$12,500 a month
+as Finance Lead**, fractional rather than salaried, scoped to the
+accounting firm, the day-to-day finance and fund transfers, the
+dashboards and fund recovery.
+
+That negotiation was live eleven days before this campaign was built to
+recruit for the same seat at $140,000 to $180,000. The campaign was built
+without reading it.
+
+`status = "closed"`, not `"draft"`, because this is not waiting on a
+number. It is not a search.
+
+## Recorded 2026-08-30: the comp sanity check that was skipped
+
+Peter: *"Many of these salary bands are much higher than what's provided.
+You should have used the most recent informal message. That's one of the
+most recent sources. You should have used that as a sanity check."*
+
+He is right, and the failure is specific rather than general. The bands
+here were derived from `costs.csv` and the March 2026 hiring document.
+The Peter <> Greg doc is newer than both, and the brain repo's own digest
+of it says, in writing: *"where this doc contradicts anything older in
+the tree on comp, staffing, revenue, or the points formula, this doc
+wins."* It was crawled, digested, and then not used.
+
+**The rule that follows:** before publishing any band, check it against
+the newest document that mentions the seat, not the most authoritative-
+looking one. Recency beats format. A chat log from last week beats a
+finished scorecard from March.
+
+Two bands in this repo are still above their model point and are held at
+draft: engineer ($120-160k against a $108k model point) and
+brand-and-funnel ($110-150k against $96k).

@@ -23,7 +23,7 @@ Priority evidence. Peter names the three most important roles as the operations 
 
 - **Seniority.** Director (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk, 1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs). Seat is currently empty, previous holder was fired (1K4ims_9h1WFU9M-mq_f3r_8TYrHlSG_gXa0DQxHANnQ).
 - **Location / timezone.** Remote implied. Hard rule: at least 50% of working hours between 9am and 10pm ET (1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs). Comp benchmarked to "Philly 2026" (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
-- **Comp.** Three figures in one document, unreconciled: $130,000-$180,000 plus performance bonuses; $130k-$160k; $135k-$175k base plus 0.5%-1.5% equity (all 1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Not stated in 1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs.
+- **Comp.** Three figures in one document, unreconciled: $130,000-$180,000 plus performance bonuses; $130k-$160k; $135k-$175k base plus 0.5%-1.5% upside (all 1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Not stated in 1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs.
 - **Must-haves.** Data-driven; systems thinker using Theory of Constraints; unflappable under volume; proficient in the stack or able to direct engineers (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Plus the ops rubric: intelligence, high conscientiousness, quick work and response pace, high detail orientation, clear succinct written communication, acknowledges messages within 30 seconds at least half the time online, inbox zero a few times a day, daily written memos, quantifies probabilities and confidence intervals, sincere candor, discretion on comp and performance data, writes unambiguous SOPs fast, player-coach with no task too menial (1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs).
 - **Nice-to-haves.** High-volume logistics, fintech KYC onboarding, or SaaS implementation; has scaled a team from 10 to 100+ (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). AI tooling fluency: prompting for research, multiple LLMs, has built basic software with AI, agents, LLM APIs; hiring ability; copywriting; has operated in orgs of similar headcount that grew from where Sunbird is to where it wants to go (1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs). Comfortable with probabilistic thinking and competing objectives; systematizer (1K4ims_9h1WFU9M-mq_f3r_8TYrHlSG_gXa0DQxHANnQ).
 - **Disqualifiers.** NOT IN DOCS as an explicit list. The nearest thing is Peter's stated bar that candidates must reach 7/10 and ideally 8/10 on his internal scale (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
@@ -42,7 +42,7 @@ Priority evidence. Peter names the three most important roles as the operations 
 
 - **Seniority.** Senior generalist, CEO proxy (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Location.** At least 50% of hours 9am-10pm ET (1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs). Comp benchmarked Philly 2026.
-- **Comp.** $105k-$145k base plus 0.25%-0.75% equity; a second line in the same doc says $100k-$140k (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Conflict, unresolved.
+- **Comp.** $105k-$145k base plus 0.25%-0.75% upside; a second line in the same doc says $100k-$140k (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Conflict, unresolved.
 - **Must-haves.** Adaptable generalist across HR, hardware logistics and vendors in one afternoon; process architect and engineering liaison who audits fractured workflows and writes prioritised requirements; ruthless prioritiser; high autonomous execution, builds a playbook when none exists; high EQ; able to say no on the CEO's behalf (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Nice-to-haves.** McKinsey, BCG or Bain consultants; investment banking analysts with 2-4 years; generalist founders of failed startups (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Disqualifiers.** NOT IN DOCS.
@@ -232,8 +232,8 @@ Five separate postings added 04/20/2026, all remote, all $20 per hour, all doing
 
 Each of the following appears as a seat Sunbird wants filled, with no comp, no location and no criteria beyond a one-line scope. Treat all fields as NOT IN DOCS unless quoted.
 
-- **COO.** "$180k - $250k+ + Significant Equity", CEO's peer, owns the P&L and the full delivery engine (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Competing option to Director of Ops and VP Ops, undecided.
-- **VP Ops.** "$150k - $200k + Equity" in the market map; no comp in the VP Ops scorecard tab. Mission: scale gig worker operations to 100 new active clients per week (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
+- **COO.** "$180k - $250k+ + Significant Upside", CEO's peer, owns the P&L and the full delivery engine (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk). Competing option to Director of Ops and VP Ops, undecided.
+- **VP Ops.** "$150k - $200k + Upside" in the market map; no comp in the VP Ops scorecard tab. Mission: scale gig worker operations to 100 new active clients per week (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Operations Manager.** $80,000-$115,000 in two listings, $80k-$110k in a third. Profile: former ops lead at Uber, DoorDash or TaskRabbit, or a production manager from a high-volume fulfilment centre (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Implementation / Onboarding Manager.** $70,000-$95,000. Targets the document revision and no-show problems directly (1p1xSHI2tSil2ShIPY6zkw9IF0t2GIoAduO9dHEGqrrk).
 - **Director of Client Ops.** Owns RC, AE, VIP Host and the missing customer service function (1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs).

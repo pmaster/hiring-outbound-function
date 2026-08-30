@@ -87,7 +87,7 @@ comp   = "$8,000 to $12,000 a month"
 jd_url = "https://hiring.example/roles/brand-and-funnel"
 
 [role_overrides.chief-of-staff]
-comp   = "$105,000 to $145,000 plus equity"
+comp   = "$105,000 to $145,000 plus performance upside"
 jd_url = "https://hiring.example/roles/chief-of-staff"
 
 [role_overrides.quant-program-manager]

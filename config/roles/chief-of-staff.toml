@@ -17,9 +17,9 @@ seats          = 1
 seniority      = "senior generalist"
 employment     = "contractor, full time, remote"
 # Source gives two bands in one document: $105k-$145k base plus 0.25%-0.75%
-# equity, and $100k-$140k. Unreconciled. Set the real one in settings.toml.
+# upside, and $100k-$140k. Unreconciled. Set the real one in settings.toml.
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
-comp           = "$105,000 to $145,000 a year, plus equity"
+comp           = "$105,000 to $145,000 a year, plus performance upside"
 comp_in_email  = true
 comp_confidence = "high"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/chief-of-staff"

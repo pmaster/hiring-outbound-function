@@ -11,10 +11,17 @@
 [role]
 key            = "controller"
 title          = "Controller"
-status         = "draft"
+status         = "closed"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
+# CLOSED 2026-08-30. Not a live search.
+# Peter: "we're not really looking for a head of finance."
+# The seat is being filled fractionally. docs/DECISIONS.md has the detail:
+# a named candidate proposed $12,500/month as Finance Lead in a document
+# dated 2026-08-19 to 25, the newest in the corpus. This campaign was
+# built without reading it.
+#
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$140,000 to $180,000 a year"
 comp_in_email  = true

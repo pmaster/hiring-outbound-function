@@ -23,7 +23,7 @@ seniority      = "senior"
 employment     = "contractor, full time, remote"
 # NEEDS PETER: confirm contractor vs fractional. hiring-pack.md leaves it open.
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
-comp           = "$135,000 to $175,000 a year, plus equity"
+comp           = "$135,000 to $175,000 a year, with performance upside on top"
 comp_in_email  = true
 comp_confidence = "high"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/head-of-operations"

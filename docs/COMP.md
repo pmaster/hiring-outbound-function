@@ -14,8 +14,8 @@ Change one in the role file, or without touching git:
 
 | Role | Band | Source | Confidence |
 |---|---|---|---|
-| Head of Operations | $135,000 to $175,000 a year, plus equity | Read off the Q1 market map | **High** |
-| Chief of Staff | $105,000 to $145,000 a year, plus equity | Read off the Q1 market map | **High** |
+| Head of Operations | $135,000 to $175,000 a year, with performance upside on top | Read off the Q1 market map | **High** |
+| Chief of Staff | $105,000 to $145,000 a year, plus performance upside | Read off the Q1 market map | **High** |
 | Technical Program Manager | $90,000 to $125,000 a year, plus performance bonus | Read off the Q1 market map | **High** |
 | Technical Support Specialist | $80,000 to $105,000, Philadelphia. Varies by city. | Read off the posting sheet | **High** |
 | Controller | $140,000 to $180,000 a year | My guess | Medium |
@@ -27,14 +27,14 @@ Change one in the role file, or without touching git:
 ## The reasoning, where I guessed
 
 **Head of Operations.** Three figures in one document: $130k-$180k plus bonus,
-$130k-$160k, and $135k-$175k base plus 0.5%-1.5% equity. I took the third,
-because it is the most specific and the only one that names equity, and equity
+$130k-$160k, and $135k-$175k base plus 0.5%-1.5% upside. I took the third,
+because it is the most specific and the only one that names upside, and performance upside
 is what makes this seat competitive against a bigger company's cash. A separate
-line gives VP of Ops as $150k-$200k plus equity; if the answer to "which ops
+line gives VP of Ops as $150k-$200k plus performance upside; if the answer to "which ops
 title" turns out to be VP rather than Director, move up to that.
 
-**Chief of Staff.** $105k-$145k plus 0.25%-0.75% equity, and $100k-$140k, in
-the same document. Took the one with equity, same reasoning.
+**Chief of Staff.** $105k-$145k plus 0.25%-0.75% upside, and $100k-$140k, in
+the same document. Took the one with upside, same reasoning.
 
 **Technical Program Manager.** One figure, no conflict. Used as written.
 
@@ -49,7 +49,7 @@ error and the opsec notes call it out.
 which annualises to roughly $103k. The point of this hire is to stop one person
 being a single point of failure, which means hiring at or above the incumbent,
 not below. US senior full-stack with startup experience and daily AI tooling
-runs $140k-$180k on a W2. This is a contractor with no benefits and no equity
+runs $140k-$180k on a W2. This is a contractor with no benefits and no upside
 stated, which normally pushes cash up, but the work is internal tooling rather
 than consumer scale, which pulls it down. $120k-$160k sits between those and
 clears the incumbent. If nobody good replies in three weeks, the number is the
@@ -88,5 +88,5 @@ band for someone who has built a process and can name the number it moved.
    do not have that uplift applied, so they read slightly low for contractors.
 2. **Onshore or offshore.** Unanswered in the source. It halves several of
    these.
-3. **Equity.** Two roles carry an equity range in the source. The others say
-   nothing. If there is no equity, the cash has to be higher.
+3. **Upside.** Two roles carry an upside range in the source. The others say
+   nothing. If there is no upside, the cash has to be higher.
