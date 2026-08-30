@@ -19,6 +19,7 @@ employment     = "contractor, full time, remote"
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$90,000 to $125,000 a year, plus performance bonus"
 comp_in_email  = true
+comp_confidence = "high"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/technical-program-manager"
 one_liner      = "Sit between the execution floor and engineering, and hold both to an error rate."
 sender         = "peter"

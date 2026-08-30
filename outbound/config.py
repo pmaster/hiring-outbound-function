@@ -152,6 +152,7 @@ class Role:
     searches: list[Search] = field(default_factory=list)
     booking_questions: list[str] = field(default_factory=list)
     path: Path | None = None
+    comp_confidence: str = "unknown"
 
     @property
     def is_live(self) -> bool:
@@ -326,6 +327,7 @@ def load_role(path: Path) -> Role:
         employment=str(block.get("employment") or ""),
         comp=str(block.get("comp") or "NEEDS_PETER"),
         comp_in_email=bool(block.get("comp_in_email", True)),
+        comp_confidence=str(block.get("comp_confidence") or "unknown").lower(),
         jd_url=str(block.get("jd_url") or ""),
         one_liner=str(block.get("one_liner") or ""),
         sender=str(block.get("sender") or "recruiting"),
@@ -339,6 +341,22 @@ def load_role(path: Path) -> Role:
     if role.status not in {"live", "draft", "paused", "closed"}:
         raise ConfigError(
             f"{path}: role.status is {role.status!r}. Use live, draft, paused or closed."
+        )
+    if role.comp_confidence not in {"high", "medium", "low", "unknown"}:
+        raise ConfigError(
+            f"{path}: role.comp_confidence is {role.comp_confidence!r}. "
+            f"Use high, medium, low or unknown. It comes from docs/COMP.md."
+        )
+    # A guessed salary must not go into a cold email. An email cannot be
+    # edited after it is sent and the number is the first thing a senior
+    # operator reads, so a wrong band is a retraction to a named person we
+    # were trying to impress. Five roles were live on a guess.
+    if role.is_live and role.comp_in_email and role.comp_confidence != "high":
+        raise ConfigError(
+            f"{path}: role is live and puts comp in email 1, but "
+            f"comp_confidence is {role.comp_confidence!r}. Only a band "
+            f"sourced from a document Peter wrote may be emailed. Get the "
+            f"number, or set status = \"draft\"."
         )
     role.signals = [
         _parse_signal(item, key, i) for i, item in enumerate(data.get("signal", []))
@@ -401,7 +419,8 @@ def load_settings(path: Path | None = None) -> Settings:
 
 OVERRIDABLE = {
     "title", "status", "comp", "jd_url", "one_liner", "sender", "daily_cap",
-    "seats", "employment", "comp_in_email", "target_list_size", "template_dir",
+    "seats", "employment", "comp_in_email", "comp_confidence",
+    "target_list_size", "template_dir",
 }
 
 

@@ -24,7 +24,8 @@ employment     = "contractor, full time, remote"
 # NEEDS PETER: confirm contractor vs fractional. hiring-pack.md leaves it open.
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$135,000 to $175,000 a year, plus equity"
-comp_in_email  = true      # A senior operator will not answer a blind approach.
+comp_in_email  = true
+comp_confidence = "high"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/head-of-operations"
 one_liner      = "Own how the company runs, so the founder can stop being the operating system."
 sender         = "peter"   # Peter sends this one himself. Do not delegate it.

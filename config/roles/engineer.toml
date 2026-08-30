@@ -10,13 +10,14 @@
 [role]
 key            = "engineer"
 title          = "Engineer"
-status         = "live"
+status         = "draft"
 seats          = 2
 seniority      = "senior"
 employment     = "contractor, full time, remote"
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$120,000 to $160,000 a year"
 comp_in_email  = true
+comp_confidence = "medium"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/engineer"
 one_liner      = "Own the internal tooling that fifty people work in every day."
 sender         = "peter"

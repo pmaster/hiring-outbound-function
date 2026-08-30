@@ -349,3 +349,66 @@ the brain pack's title for anything public and keep the TPM framing for
 the outbound sequence only.
 
 Full title reasoning: `brain:projects/sunbird/hiring/common/title-portfolio.md`.
+
+---
+
+## Recorded 2026-08-30: five roles were live on a guessed salary
+
+`docs/COMP.md` grades every band by confidence and is honest about it:
+four are **High**, four are **Medium** ("my guess"), one is **Low** ("my
+guess. No source anywhere"). All nine were `status = "live"` with
+`comp_in_email = true`.
+
+That is a guessed salary going into a cold email to a named senior
+operator. An email cannot be edited after it is sent, and the number is
+the first thing the reader looks at, so a wrong band is a retraction to
+exactly the person we were trying to impress. The hiring pack applies the
+same rule to job-board rows, where it matters less
+(`brain:projects/sunbird/hiring/common/hiring-system.md` §6 rule 2).
+
+**The rule now.** A role may be live with comp in the email only if
+`comp_confidence = "high"`. `outbound/config.py` raises `ConfigError` on
+anything else, so the pipeline cannot start with a guessed number in it.
+Every role file now carries `comp_confidence`, copied from `COMP.md`.
+
+**Live:** head-of-operations, chief-of-staff, quant-program-manager.
+**Draft, pending Peter's number:** controller, engineer, brand-and-funnel,
+ops-generalist, business-systems-lead, fulfillment-specialist.
+
+Getting one number turns one campaign back on. `OUTBOUND-PLAYBOOK.md` §8
+runs them one at a time anyway, so the three live roles cover the queue
+for about nine weeks. This costs nothing today.
+
+## Recorded 2026-08-30: three bands disagree with the hiring pack
+
+Neither side is obviously right and both are assumptions, so nothing was
+silently reconciled. All three are held at draft until Peter answers.
+
+| Seat | This repo | The hiring pack | Note |
+|---|---|---|---|
+| Engineer | $120,000 to $160,000, anchored on the incumbent | $5,000 to $10,000 a month, interpolated from `costs.csv` | $60k to $120k against $120k to $160k. The ranges barely touch. The incumbent anchor is the better evidence, but `costs.csv` is the only figure derived from payroll |
+| Controller / Head of Finance | $140,000 to $180,000 | $130,000 to $180,000 | A $10,000 gap at the floor. Small, and it would still be two numbers in two documents |
+| Fulfillment Specialist | $80,000 to $105,000 | $90,000 to $160,000 posted, $90,000 target | See below. This may not be the same seat |
+
+## Recorded 2026-08-30: the fulfillment-specialist seat identity
+
+`config/roles/fulfillment-specialist.toml` is titled **Technical Support
+Specialist** and describes 15 entry seats, hybrid, with daily local
+travel and a QA and KYC keyword set. In the hiring pack that is the
+**Quantitative Trader** seat, at 15 seats and the same shape. The pack's
+actual Technical Support Specialist is a device-setup role at $29 to $31
+an hour, and it owns that title
+(`brain:projects/sunbird/hiring/common/title-portfolio.md` §5, collision
+1: two seats never share a title).
+
+So this file may be emailing 800 people about seat A under seat B's
+title, at a band that matches neither. Held at draft.
+
+It also carried its own instruction not to do what it did: *"Comp varies
+BY CITY. Do not put a single band in the email. Set the band per search,
+or split this into one role file per metro before going live."* It had
+one band, `comp_in_email = true`, and `status = "live"` across seven
+metros.
+
+**To turn it back on**, three answers are needed: which seat this is,
+which title it posts under, and the band per metro.

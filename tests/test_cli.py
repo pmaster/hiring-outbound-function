@@ -101,7 +101,11 @@ class TestCli(unittest.TestCase):
             self.assertEqual(code, 0, output)
             self.assertTrue((Path(tmp) / "index.html").exists())
             self.assertTrue((Path(tmp) / "unsubscribe.html").exists())
-            self.assertTrue((Path(tmp) / "roles" / "engineer.html").exists())
+            # A live role gets a page. A draft one must not: a careers
+            # page for a role we are not sending on is a page a candidate
+            # can apply to and never hear back from.
+            self.assertTrue((Path(tmp) / "roles" / "chief-of-staff.html").exists())
+            self.assertFalse((Path(tmp) / "roles" / "engineer.html").exists())
 
     def test_unknown_command_exits_non_zero(self):
         with self.assertRaises(SystemExit) as ctx:

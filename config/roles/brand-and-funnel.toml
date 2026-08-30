@@ -10,13 +10,14 @@
 [role]
 key            = "brand-and-funnel"
 title          = "Head of Brand and Funnel"
-status         = "live"
+status         = "draft"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$110,000 to $150,000 a year"
 comp_in_email  = true
+comp_confidence = "medium"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/brand-and-funnel"
 one_liner      = "Own every conversion step from the ad to the offer."
 sender         = "peter"

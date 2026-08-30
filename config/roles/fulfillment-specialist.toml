@@ -26,15 +26,34 @@
 [role]
 key            = "fulfillment-specialist"
 title          = "Technical Support Specialist"
-status         = "live"
+status         = "draft"
 seats          = 15
 seniority      = "entry"
 employment     = "contract, hybrid, daily local travel"
 # Comp varies BY CITY. Do not put a single band in the email. Set the band per
 # search, or split this into one role file per metro before going live.
+#
+# HELD 2026-08-30, three reasons, and the last one is the one that matters.
+#  1. This file did the thing the line above forbids: comp_in_email = true
+#     with one band, status = live, 800 people across seven metros.
+#  2. The band disagrees with the hiring pack. brain:projects/sunbird/
+#     hiring/roles/quantitative-trader/scorecard.md posts $90,000 to
+#     $160,000 for what looks like this seat. This file says $80,000 to
+#     $105,000. Whichever is right, they cannot both be emailed.
+#  3. The seat identity is unresolved. 15 seats, entry, hybrid, daily
+#     local travel and a QA/KYC keyword set describe the Quantitative
+#     Trader seat in the pack, not the Technical Support Specialist seat,
+#     which is a device-setup role at $29 to $31 an hour. The title on
+#     this file is owned by that other seat
+#     (brain:projects/sunbird/hiring/common/title-portfolio.md section 5,
+#     collision 1: two seats never share a title). Emailing 800 people
+#     under a title another live posting owns is the expensive version of
+#     this mistake.
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$80,000 to $105,000 a year"
 comp_in_email  = true
+comp_confidence = "medium"  # See the note above: the band is High for Philadelphia
+                            # only, and this file emails one band to seven metros.
 jd_url         = "https://viewlineventures.com/roles/technical-support-specialist"
 one_liner      = "Run the process exactly, catch what other people miss, and say when something looks wrong."
 sender         = "recruiting"

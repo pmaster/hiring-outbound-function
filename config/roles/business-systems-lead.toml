@@ -15,13 +15,14 @@
 [role]
 key            = "business-systems-lead"
 title          = "Business Systems Lead"
-status         = "live"
+status         = "draft"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$95,000 to $130,000 a year"
 comp_in_email  = true
+comp_confidence = "low"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/business-systems-lead"
 one_liner      = "Own the automations and the CRM that the whole operation runs through."
 sender         = "recruiting"

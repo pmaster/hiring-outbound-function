@@ -12,13 +12,14 @@
 [role]
 key            = "ops-generalist"
 title          = "Operations Manager"
-status         = "live"
+status         = "draft"
 seats          = 4
 seniority      = "mid"
 employment     = "contractor, full time, remote"
 # Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$70,000 to $95,000 a year"
 comp_in_email  = true
+comp_confidence = "medium"   # docs/COMP.md. Only "high" may be emailed on a live role.
 jd_url         = "https://viewlineventures.com/roles/operations-manager"
 one_liner      = "Take a department that has no head and make it work."
 sender         = "recruiting"   # Not Peter. Volume seat, coordinator sends.
