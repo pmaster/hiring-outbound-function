@@ -15,6 +15,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+# No test may reach the network. An unmocked call fails immediately and says so.
+os.environ.setdefault("OUTBOUND_OFFLINE", "1")
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 

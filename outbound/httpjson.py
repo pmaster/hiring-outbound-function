@@ -7,6 +7,7 @@ Retry-After, and never logs an Authorization header.
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
@@ -62,6 +63,16 @@ def request_json(
     if body is not None:
         payload = json.dumps(body).encode("utf-8")
         send_headers.setdefault("Content-Type", "application/json")
+
+    # A test that reaches the network is a test that hangs, costs money, or
+    # passes for the wrong reason. Setting OUTBOUND_OFFLINE turns an unmocked
+    # call into an immediate, obvious failure.
+    if os.environ.get("OUTBOUND_OFFLINE", "").strip() not in ("", "0", "false"):
+        raise ProviderError(
+            f"OUTBOUND_OFFLINE is set and something tried to call {url}. "
+            f"In a test, mock outbound.httpjson.get or .post. In a real run, "
+            f"unset OUTBOUND_OFFLINE."
+        )
 
     attempt = 0
     while True:

@@ -125,6 +125,28 @@ A reply saying "no thanks" is also an unsubscribe. Suppress it by hand:
 
     python3 -m outbound suppress someone@example.com --reason "asked to stop"
 
+## 7b. If you send through a sequencer, make the campaign a passthrough
+
+Skip this if you send over plain SMTP, which is the default and the right
+choice for the founder sent seats.
+
+A sequencer sends **its own** campaign copy, not the copy this repo renders.
+If you paste a campaign body into Instantly, that is what candidates receive
+and everything in `templates/` is ignored. Nothing errors.
+
+So set the campaign's email body to exactly:
+
+    {{outbound_body}}
+
+and the subject line to:
+
+    {{outbound_subject}}
+
+The adapter pushes both as custom variables on each lead, and reads the
+campaign back before the first send to check. It refuses rather than sending
+the wrong copy. Turn the check off with
+`providers.instantly.verify_campaign = false` only if you meant it.
+
 ## 8. Fill in the settings and check
 
     python3 -m outbound init

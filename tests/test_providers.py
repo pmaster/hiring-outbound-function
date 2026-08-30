@@ -13,6 +13,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+# No test may reach the network. An unmocked call fails immediately and says so.
+os.environ.setdefault("OUTBOUND_OFFLINE", "1")
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -271,7 +274,9 @@ class TestSendAdapters(ProviderTestCase):
 
     def test_instantly_routes_per_role(self):
         settings = settings_with(
-            "instantly", {"campaign_id": "default", "campaign_by_role": {"engineer": "eng"}}
+            "instantly",
+            {"campaign_id": "default", "campaign_by_role": {"engineer": "eng"},
+             "verify_campaign": False},
         )
         recorder = Recorder({"id": "lead_1"})
         with mock.patch.object(httpjson, "post", recorder):
@@ -283,6 +288,42 @@ class TestSendAdapters(ProviderTestCase):
                           "role_key": "head-of-operations"})
             self.assertEqual(recorder.last["body"]["campaign"], "default")
         self.assertTrue(recorder.last["headers"]["Authorization"].startswith("Bearer "))
+
+    def test_instantly_refuses_a_campaign_that_would_send_its_own_copy(self):
+        """Instantly sends the campaign's body, not ours, unless the body is a
+        passthrough. Nothing errors; the wrong email just goes out."""
+        settings = settings_with("instantly", {"campaign_id": "c1"})
+        wrong = Recorder({"sequences": [{"steps": [{"body": "Hi {{firstName}}, we are hiring!"}]}]})
+        with mock.patch.object(httpjson, "get", wrong), \
+             mock.patch.object(httpjson, "post", Recorder({"id": "l1"})):
+            adapter = providers.build("send", "instantly", settings)
+            with self.assertRaises(Exception) as ctx:
+                adapter.send({"to": "a@b.com", "subject": "s", "body": "b",
+                              "step": 1, "role_key": "engineer"})
+        self.assertIn("outbound_body", str(ctx.exception))
+
+    def test_instantly_accepts_a_passthrough_campaign(self):
+        settings = settings_with("instantly", {"campaign_id": "c1"})
+        right = Recorder({"sequences": [{"steps": [{"body": "{{outbound_body}}"}]}]})
+        poster = Recorder({"id": "l1"})
+        with mock.patch.object(httpjson, "get", right), \
+             mock.patch.object(httpjson, "post", poster):
+            adapter = providers.build("send", "instantly", settings)
+            out = adapter.send({"to": "a@b.com", "subject": "s", "body": "b",
+                                "step": 1, "role_key": "engineer", "variant": "b"})
+        self.assertEqual(out, "l1")
+        self.assertEqual(poster.last["body"]["custom_variables"]["outbound_variant"], "b")
+
+    def test_instantly_check_can_be_turned_off_on_purpose(self):
+        settings = settings_with(
+            "instantly", {"campaign_id": "c1", "verify_campaign": False}
+        )
+        poster = Recorder({"id": "l1"})
+        with mock.patch.object(httpjson, "post", poster):
+            adapter = providers.build("send", "instantly", settings)
+            adapter.send({"to": "a@b.com", "subject": "s", "body": "b",
+                          "step": 1, "role_key": "engineer"})
+        self.assertEqual(poster.last["body"]["campaign"], "c1")
 
     def test_smartlead_puts_the_key_in_the_query(self):
         settings = settings_with("smartlead", {"campaign_id": "42"})
@@ -491,6 +532,16 @@ class TestApifySafety(ProviderTestCase):
 
 
 class TestHttp(unittest.TestCase):
+    """These exercise the transport itself with urlopen mocked, so they opt
+    out of the offline guard rather than being caught by it."""
+
+    def setUp(self):
+        self._offline = mock.patch.dict(os.environ, {"OUTBOUND_OFFLINE": ""})
+        self._offline.start()
+
+    def tearDown(self):
+        self._offline.stop()
+
     def test_params_are_appended_and_none_dropped(self):
         recorder = []
 

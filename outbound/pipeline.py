@@ -700,6 +700,7 @@ def send_due(
             "step": message["step"],
             "role_key": role.key,
             "candidate_id": message["candidate_id"],
+            "variant": message.get("variant", "a"),
         }
         try:
             provider_id = provider.send(payload)

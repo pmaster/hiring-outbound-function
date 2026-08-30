@@ -124,7 +124,14 @@ evidence of absence, and zeroing it buries every thin profile.
 - `test_replies.py` — reply, bounce and unsubscribe classification.
 - `test_cli.py` — every command runs and every error is a message.
 
-Two of these tests exist because they caught something real: the T1 disclosure
-check caught a public page saying "gambling experience not required", and the
-schema migration test exists because the first schema change would have broken
-an existing database.
+**No test may reach the network.** Every test module sets `OUTBOUND_OFFLINE`,
+which makes an unmocked HTTP call fail immediately and say so, rather than
+hanging, costing money, or passing for the wrong reason. It caught three tests
+the moment it was added. The transport tests opt out explicitly, because they
+exercise the transport with `urlopen` mocked.
+
+Several of these tests exist because they caught something real: the T1 disclosure check
+caught a public page saying "gambling experience not required"; the schema
+migration test exists because the first schema change would have broken an
+existing database; and the Instantly passthrough check exists because a
+sequencer silently sends its own copy rather than yours.
