@@ -38,6 +38,9 @@ comp. Fix what it names, then run it again.
     python3 -m outbound score  head-of-operations
     python3 -m outbound review head-of-operations       # read each profile
     python3 -m outbound review head-of-operations --approve 41 --note "..."
+    # or work through them offline in a spreadsheet:
+    python3 -m outbound review head-of-operations --export review.csv
+    python3 -m outbound review head-of-operations --import-file review.csv
     python3 -m outbound enrich head-of-operations
     python3 -m outbound verify head-of-operations
     python3 -m outbound queue  head-of-operations
@@ -48,6 +51,14 @@ comp. Fix what it names, then run it again.
 
 `outbound report` ends with a "Do next" list. Follow that if you forget the
 order.
+
+Everything that is safe to automate is in one script:
+
+    scripts/daily.sh              # dry run
+    scripts/daily.sh --live       # sends, up to the daily cap
+
+It does not approve candidates and it does not decide bookings. Both need a
+person. It prints what is waiting for you.
 
 ## The three rules the code enforces
 

@@ -129,6 +129,21 @@ def cmd_score(args: argparse.Namespace) -> int:
 def cmd_review(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role = get_role(roles, args.role)
+    if args.export:
+        path = Path(args.export)
+        count = pipeline.export_review(db, role, path, limit=args.limit)
+        print(f"wrote {count} candidate(s) to {path}")
+        print("Fill in `decision` (approve or reject) and `personal_note`, then:")
+        print(f"  python3 -m outbound review {role.key} --import-file {path}")
+        db.close()
+        return 0
+    if args.import_file:
+        path = Path(args.import_file)
+        if not path.exists():
+            raise OutboundError(f"no such file: {path}")
+        _print(pipeline.import_review(db, role, path))
+        db.close()
+        return 0
     if args.approve or args.reject:
         target = args.approve or args.reject
         decision = "approve" if args.approve else "reject"
@@ -369,6 +384,8 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--approve", type=int, metavar="ID")
     review.add_argument("--reject", type=int, metavar="ID")
     review.add_argument("--note")
+    review.add_argument("--export", metavar="FILE", help="write the queue to a CSV to work through offline")
+    review.add_argument("--import-file", dest="import_file", metavar="FILE", help="read a filled in review CSV back")
     review.set_defaults(func=cmd_review)
 
     questions = sub.add_parser("questions", help="print the screener booking form questions")

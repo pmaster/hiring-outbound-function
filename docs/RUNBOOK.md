@@ -58,6 +58,14 @@ email data from a vendor.
    If you cannot write that line in one sentence, reject the person. A generic
    line is worse than no email.
 
+   For a long queue, work offline in a spreadsheet instead:
+
+       python3 -m outbound review head-of-operations --export review.csv
+       # open it, click the profile links, fill in decision and personal_note
+       python3 -m outbound review head-of-operations --import-file review.csv
+
+   A blank `decision` is left alone, so you can do the file in two sittings.
+
 2. **Enrich and verify.**
 
        python3 -m outbound enrich head-of-operations
@@ -93,6 +101,20 @@ email data from a vendor.
 5. **Read the report.**
 
        python3 -m outbound report
+
+## Automating the safe half
+
+Steps 2, 3 and the booking sync are in one script:
+
+    scripts/daily.sh --live
+
+On cron, weekdays at 08:40 New York:
+
+    40 8 * * 1-5 cd /path/to/hiring-outbound-function && scripts/daily.sh --live >> data/daily.log 2>&1
+
+It runs `doctor` per role first and skips any role that fails, so a half
+configured role cannot send. It never approves a candidate and never decides a
+booking.
 
 ## What good looks like
 

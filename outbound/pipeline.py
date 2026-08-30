@@ -164,6 +164,78 @@ def score_all(
     return result
 
 
+def export_review(db: Database, role: Role, path: Path, limit: int | None = None) -> int:
+    """Write the review queue to a CSV a person can work through offline.
+
+    Reviewing 300 profiles one command at a time is the real bottleneck. Open
+    the CSV, click the profile links, fill in `decision` and `personal_note`,
+    then import it back.
+    """
+    rows = db.candidates(role.key, stages=["review"], limit=limit)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = [
+        "id", "decision", "personal_note", "score", "full_name", "title",
+        "company", "company_headcount", "location", "linkedin_url",
+        "top_signals", "review_note",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            try:
+                detail = json.loads(row.get("score_json") or "{}")
+                top = sorted(detail.get("signals", []), key=lambda s: -s["contribution"])[:3]
+                signals = ", ".join(f"{s['key']} {s['contribution']:+.2f}" for s in top)
+            except json.JSONDecodeError:
+                signals = ""
+            writer.writerow(
+                {
+                    "id": row["id"],
+                    "decision": "",
+                    "personal_note": row.get("personal_note") or "",
+                    "score": f"{row.get('score') or 0:.2f}",
+                    "full_name": row.get("full_name"),
+                    "title": row.get("title"),
+                    "company": row.get("company"),
+                    "company_headcount": row.get("company_headcount"),
+                    "location": row.get("location"),
+                    "linkedin_url": row.get("linkedin_url"),
+                    "top_signals": signals,
+                    "review_note": "",
+                }
+            )
+    return len(rows)
+
+
+def import_review(db: Database, role: Role, path: Path) -> StepResult:
+    """Read a filled in review CSV back. Blank decisions are left alone."""
+    result = StepResult(step=f"review:import[{role.key}]")
+    for row in read_csv(path):
+        raw_id = str(row.get("id") or "").strip()
+        decision = str(row.get("decision") or "").strip().lower()
+        if not raw_id or not decision:
+            result.bump("skipped_blank")
+            continue
+        try:
+            candidate_id = int(raw_id)
+        except ValueError:
+            result.bump("bad_id")
+            continue
+        note = str(row.get("personal_note") or "").strip()
+        review_note = str(row.get("review_note") or "").strip()
+        try:
+            outcome = set_review(
+                db, role, candidate_id, decision,
+                note if decision.startswith(("a", "y")) else review_note,
+            )
+        except OutboundError as exc:
+            result.bump("refused")
+            result.notes.append(f"id {candidate_id}: {exc}")
+            continue
+        result.bump(outcome)
+    return result
+
+
 def set_review(
     db: Database, role: Role, candidate_id: int, decision: str, note: str = ""
 ) -> str:

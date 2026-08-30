@@ -276,6 +276,42 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(second.counts.get("created", 0), 0)
         self.assertEqual(second.counts.get("updated"), len(rows))
 
+    def test_review_csv_round_trip(self):
+        import csv as _csv
+
+        self._seed()
+        out = Path(self.dir.name) / "review.csv"
+        count = pipeline.export_review(self.db, self.role, out)
+        self.assertGreater(count, 0)
+        rows = list(_csv.DictReader(out.open(encoding="utf-8")))
+        self.assertEqual(len(rows), count)
+        for index, row in enumerate(rows):
+            row["decision"] = "approve" if index == 0 else "reject"
+            row["personal_note"] = "A specific detail." if index == 0 else ""
+        with out.open("w", newline="", encoding="utf-8") as handle:
+            writer = _csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+        result = pipeline.import_review(self.db, self.role, out)
+        self.assertEqual(result.counts.get("approved"), 1)
+        self.assertEqual(result.counts.get("rejected"), len(rows) - 1)
+
+    def test_review_import_refuses_approve_without_a_note(self):
+        import csv as _csv
+
+        self._seed()
+        out = Path(self.dir.name) / "review.csv"
+        pipeline.export_review(self.db, self.role, out)
+        rows = list(_csv.DictReader(out.open(encoding="utf-8")))
+        rows[0]["decision"] = "approve"
+        rows[0]["personal_note"] = ""
+        with out.open("w", newline="", encoding="utf-8") as handle:
+            writer = _csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows[:1])
+        result = pipeline.import_review(self.db, self.role, out)
+        self.assertEqual(result.counts.get("refused"), 1)
+
     def test_approving_without_a_note_is_refused(self):
         self._seed()
         row = self.db.candidates(self.role.key, stages=["review"])[0]
