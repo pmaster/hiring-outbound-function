@@ -145,6 +145,63 @@ def _ramp(value: float, hard: float, soft: float | None, above: bool) -> float:
     return clamp((soft - value) / (soft - hard))
 
 
+def evidence_for(signal: Signal, profile: dict[str, Any], width: int = 90) -> list[str]:
+    """The actual profile text that made a signal fire.
+
+    The reviewer has to write one specific sentence about this person, and the
+    slow part is finding it. This hands them the sentences the scorer already
+    found, without writing the note for them: a note generated from a template
+    is exactly the generic line the whole design exists to prevent.
+    """
+    if signal.kind != "regex_any":
+        return []
+    text = _as_text(_field_value(profile, signal.field))
+    if not text:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for pattern in signal.patterns:
+        match = _compiled(pattern).search(text)
+        if not match:
+            continue
+        start = max(0, match.start() - width // 2)
+        end = min(len(text), match.end() + width // 2)
+        snippet = re.sub(r"\s+", " ", text[start:end]).strip()
+        if start > 0:
+            snippet = "..." + snippet
+        if end < len(text):
+            snippet = snippet + "..."
+        if snippet not in seen:
+            seen.add(snippet)
+            out.append(snippet)
+        if len(out) >= 3:
+            break
+    return out
+
+
+def top_evidence(role, profile: dict[str, Any], limit: int = 3) -> list[str]:
+    """Evidence from the highest weighted signals that actually fired."""
+    ranked = sorted(
+        (s for s in role.signals if s.weight > 0 and s.kind == "regex_any"),
+        key=lambda s: -s.weight,
+    )
+    out: list[str] = []
+    seen: set[str] = set()
+    # One snippet per signal, best signal first. Three quotes of the same
+    # sentence tell the reviewer nothing that one does.
+    for signal in ranked:
+        for snippet in evidence_for(signal, profile):
+            key = snippet.strip(". ").lower()[:60]
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(f"[{signal.key}] {snippet}")
+            break
+        if len(out) >= limit:
+            break
+    return out
+
+
 def evaluate_signal(signal: Signal, profile: dict[str, Any]) -> tuple[float, str, bool]:
     """Returns (strength 0..1, detail, field_was_missing)."""
     value = _field_value(profile, signal.field)

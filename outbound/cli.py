@@ -28,6 +28,7 @@ from .compliance import Problem, preflight
 from .config import CONFIG_DIR, REPO_ROOT, Role, Settings, get_role, load_all
 from .db import Database, open_db
 from .errors import OutboundError
+from .score import top_evidence
 from .search import render_plan
 from .util import iso, truncate
 
@@ -228,6 +229,13 @@ def cmd_review(args: argparse.Namespace) -> int:
             print("        " + ", ".join(f"{s['key']} {s['contribution']:+.2f}" for s in top))
         except json.JSONDecodeError:
             pass
+        profile = dict(row)
+        try:
+            profile["raw"] = json.loads(row.get("profile_json") or "{}")
+        except json.JSONDecodeError:
+            profile["raw"] = {}
+        for snippet in top_evidence(role, profile):
+            print(f"        > {truncate(snippet, 96)}")
         if row.get("personal_note"):
             print(f"        note: {truncate(row['personal_note'], 90)}")
         print()

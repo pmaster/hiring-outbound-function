@@ -24,7 +24,7 @@ from .config import Role, Settings
 from .db import TERMINAL_STAGES, Database
 from .errors import ComplianceError, OutboundError, SafetyStop
 from .profiles import normalize
-from .score import route, score_profile
+from .score import route, score_profile, top_evidence
 from .util import iso, now, norm_email, parse_iso, plural
 
 
@@ -183,7 +183,7 @@ def export_review(db: Database, role: Role, path: Path, limit: int | None = None
     fields = [
         "id", "decision", "personal_note", "score", "full_name", "title",
         "company", "company_headcount", "location", "linkedin_url",
-        "top_signals", "review_note",
+        "evidence", "top_signals", "review_note",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -195,9 +195,16 @@ def export_review(db: Database, role: Role, path: Path, limit: int | None = None
                 signals = ", ".join(f"{s['key']} {s['contribution']:+.2f}" for s in top)
             except json.JSONDecodeError:
                 signals = ""
+            profile = dict(row)
+            try:
+                profile["raw"] = json.loads(row.get("profile_json") or "{}")
+            except json.JSONDecodeError:
+                profile["raw"] = {}
+            evidence = " || ".join(top_evidence(role, profile))
             writer.writerow(
                 {
                     "id": row["id"],
+                    "evidence": evidence,
                     "decision": "",
                     "personal_note": row.get("personal_note") or "",
                     "score": f"{row.get('score') or 0:.2f}",

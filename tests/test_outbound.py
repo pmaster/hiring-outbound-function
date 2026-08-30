@@ -157,6 +157,35 @@ class TestScoring(unittest.TestCase):
         b = score_profile(role, weak, allowed_countries={"US"}).score
         self.assertGreater(a, b + 0.2)
 
+    def test_evidence_quotes_the_profile_text_that_fired_a_signal(self):
+        from outbound.score import evidence_for, top_evidence
+
+        role = self.roles["head-of-operations"]
+        profile = normalize({
+            "fullName": "S T", "headline": "Head of Operations at Kestrel",
+            "profileUrl": "https://linkedin.com/in/st", "location": "Austin, TX",
+            "companySize": "51-200",
+            "summary": "Built the ops function from scratch. Owned P&L and led 22 people.",
+        })
+        built = next(s for s in role.signals if s.key == "built_not_maintained")
+        snippets = evidence_for(built, profile)
+        self.assertTrue(snippets)
+        self.assertTrue(any("from scratch" in s or "Built" in s for s in snippets))
+
+        top = top_evidence(role, profile, limit=3)
+        self.assertTrue(top)
+        self.assertTrue(all(s.startswith("[") for s in top))
+        # One per signal, not three of the same one.
+        keys = [s.split("]")[0] for s in top]
+        self.assertEqual(len(keys), len(set(keys)), top)
+
+    def test_evidence_is_empty_for_a_thin_profile(self):
+        from outbound.score import top_evidence
+
+        role = self.roles["head-of-operations"]
+        thin = normalize({"fullName": "A B", "profileUrl": "https://linkedin.com/in/ab"})
+        self.assertEqual(top_evidence(role, thin), [])
+
     def test_routing_thresholds(self):
         scoring = {"auto_reject_below": 0.45, "auto_approve_above": 0.8, "require_hand_review": True}
         from outbound.score import ScoreResult
@@ -427,6 +456,7 @@ class TestPipeline(unittest.TestCase):
         with out.open(encoding="utf-8") as handle:
             rows = list(_csv.DictReader(handle))
         self.assertEqual(len(rows), count)
+        self.assertIn("evidence", rows[0], "the reviewer needs the profile quotes")
         for index, row in enumerate(rows):
             row["decision"] = "approve" if index == 0 else "reject"
             row["personal_note"] = "A specific detail." if index == 0 else ""
