@@ -153,6 +153,25 @@ The default is a person deciding one at a time. `--auto` acts on every
 suggestion. Do not use `--auto` until you have watched the suggestions be
 right for a week.
 
+## The role specifics Peter said were coming
+
+They drop into `config/roles/*.toml` with no code change.
+`docs/ROLE-INTAKE.md` lists the eight things needed per seat and where each
+one goes. The five roles already configured were built from
+`hiring-pack.md`, `outbound-recruiting-sop.md` and the Ops and HoP section of
+the hiring doc, so most of it is a matter of correcting what is there rather
+than starting from nothing.
+
+The three most likely corrections, in order:
+
+1. Comp for each seat.
+2. The company size band. For Head of Operations it is 30 to 300 with a
+   stated reason. That single filter decides about half the list.
+3. Whether ops-generalist is really four interchangeable seats or four
+   different ICPs. It is configured as one list feeding four destinations,
+   with placement decided after the screener. If they are genuinely different
+   people, split it into separate role files.
+
 ## What was assumed to keep building
 
 Where a fact was missing, the code marks it rather than inventing it.
