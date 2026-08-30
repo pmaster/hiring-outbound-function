@@ -194,6 +194,20 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    settings, roles, db = _bootstrap(args)
+    role = get_role(roles, args.role)
+    _print(
+        pipeline.evaluate_candidates(
+            db, settings, role, limit=args.limit, commit=args.commit
+        )
+    )
+    if not args.commit:
+        print("DRY RUN. No verdict was written. Pass --commit to record them.")
+    db.close()
+    return 0
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role = get_role(roles, args.role)
@@ -648,6 +662,17 @@ def build_parser() -> argparse.ArgumentParser:
     score.add_argument("role")
     score.add_argument("--restage", action="store_true", help="re-score everyone, not just new")
     score.set_defaults(func=cmd_score)
+
+    evaluate = sub.add_parser(
+        "evaluate", help="AI screen: judge fit and draft the personal note"
+    )
+    evaluate.add_argument("role")
+    evaluate.add_argument("--limit", type=int)
+    evaluate.add_argument(
+        "--commit", action="store_true",
+        help="write the verdicts. Without it, this is a dry run.",
+    )
+    evaluate.set_defaults(func=cmd_evaluate)
 
     review = sub.add_parser("review", help="the hand review queue")
     review.add_argument("role")

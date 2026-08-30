@@ -197,6 +197,101 @@ def score_all(
     return result
 
 
+def evaluate_candidates(
+    db: Database,
+    settings: Settings,
+    role: Role,
+    stages: list[str] | None = None,
+    limit: int | None = None,
+    commit: bool = True,
+) -> StepResult:
+    """The AI screen. A richer second pass after scoring.
+
+    It reads each profile against the role the way a person would, records a
+    fit verdict with reasons, and drafts the personal note the first email
+    needs. What it does with that verdict depends on `evaluation.mode`:
+
+      assist  the default. It drafts the note and logs the verdict, but leaves
+              everyone in review. A person still decides; the note is done for
+              them, which is most of the work.
+      auto    it approves a strong fit (with its drafted note), rejects a weak
+              one, and sends a maybe to review. This is what lets the list move
+              at volume without a person writing a note for each one.
+
+    `commit=False` is a dry run: it calls the evaluator and reports what it
+    would do, but writes nothing.
+    """
+    from .evaluate import build_brief, route_verdict
+    from .score import top_evidence
+
+    section = settings.section("evaluation")
+    provider_name = str(section.get("provider", "dryrun"))
+    mode = str(section.get("mode", "assist")).lower()
+    approve_at = float(section.get("auto_approve_at", 0.75))
+    reject_below = float(section.get("auto_reject_below", 0.40))
+    stages = stages or [str(s) for s in section.get("stages", ["review"])]
+
+    result = StepResult(step=f"evaluate[{role.key}]")
+    provider = provider_registry.build("evaluate", provider_name, settings)
+    if provider is None:
+        result.notes.append("evaluation provider is 'none'. Nothing to do.")
+        return result
+
+    brief = build_brief(role)
+    for row in db.candidates(role.key, stages=stages, limit=limit):
+        profile = dict(row)
+        try:
+            profile["raw"] = json.loads(row.get("profile_json") or "{}")
+        except json.JSONDecodeError:
+            profile["raw"] = {}
+        profile["_evidence"] = top_evidence(role, profile)
+        try:
+            verdict = provider.evaluate(brief, profile)
+        except Exception as exc:  # noqa: BLE001  one bad profile must not stop the run
+            result.notes.append(f"id {row['id']}: evaluate failed: {exc}")
+            result.bump("error")
+            continue
+
+        fit = float(verdict.get("fit") or 0.0)
+        decision = route_verdict(
+            fit, str(verdict.get("verdict") or ""), bool(verdict.get("disqualify")),
+            approve_at, reject_below,
+        )
+        note = str(verdict.get("personal_note") or "").strip()
+        reasons = "; ".join(str(r) for r in (verdict.get("reasons") or [])[:3])
+        detail = f"{fit:.2f} {verdict.get('verdict','?')} ({mode}->{decision}) {reasons}".strip()
+
+        result.bump(f"verdict:{verdict.get('verdict','?')}")
+        if not commit:
+            result.bump(f"would:{decision}")
+            continue
+
+        db.log_event(int(row["id"]), "ai_evaluate", detail)
+        # The drafted note is stored whatever the mode, so a later hand review
+        # or an auto-approve both have it. It never overwrites a note a person
+        # already wrote.
+        if note and not str(row.get("personal_note") or "").strip():
+            db.execute(
+                "UPDATE candidates SET personal_note = ? WHERE id = ?", (note, row["id"])
+            )
+
+        if mode == "auto" and decision == "approve":
+            if not note:
+                # No note, no email is the rule. Without a specific detail an
+                # auto-approve cannot send, so it goes to review instead.
+                result.bump("approve_without_note_to_review")
+                continue
+            set_review(db, role, int(row["id"]), "approve", note)
+            result.bump("approved")
+        elif mode == "auto" and decision == "reject":
+            reason = str(verdict.get("disqualify_reason") or "") or f"AI screen: fit {fit:.2f}"
+            set_review(db, role, int(row["id"]), "reject", reason)
+            result.bump("rejected")
+        else:
+            result.bump("left_for_review")
+    return result
+
+
 def export_review(db: Database, role: Role, path: Path, limit: int | None = None) -> int:
     """Write the review queue to a CSV a person can work through offline.
 
@@ -548,6 +643,12 @@ def queue_next(
     steps = steps_available(role)
     if not steps:
         raise OutboundError(f"no templates in templates/{role.template_dir}/")
+    # sending.max_steps caps the sequence length without deleting templates.
+    # Set it to 1 for the one-email flow (intro, JD link, screener link, no
+    # follow-ups); 0 or unset uses every template the role has.
+    max_steps = int(settings.get("sending.max_steps", 0) or 0)
+    if max_steps > 0:
+        steps = steps[:max_steps]
     gaps = [int(g) for g in settings.get("sending.step_gap_days", [0, 4, 8]) or [0]]
     cap = limit or int(settings.get("limits.max_sends_per_run", 60)) * 3
     one_role_only = bool(settings.get("limits.one_role_per_person", True))

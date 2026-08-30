@@ -36,6 +36,9 @@ per_mailbox_per_day = 18
 mailboxes           = 2
 # Days between sequence steps.
 step_gap_days       = [0, 4, 8]
+# Cap the sequence length. 1 = one email only (intro, JD link, screener
+# link, no follow-ups). 0 or unset uses every step template the role has.
+max_steps           = 0
 # The last email names a date. This is how many days ahead it lands.
 search_closes_days  = 10
 # Do not send on these weekdays (0 = Monday).
@@ -86,6 +89,23 @@ auto_approve_above  = 0.80
 # Every candidate between the two goes to `outbound review`.
 # Hand review is the edge. Do not turn this off.
 require_hand_review = true
+
+[evaluation]
+# The AI screen. Runs after scoring: it judges each profile against the role,
+# drafts the specific personal note the first email needs, and either speeds a
+# hand review or moves the list on its own.
+#   provider  dryrun reuses the heuristic score offline; anthropic calls a
+#             model and needs ANTHROPIC_API_KEY in .env.
+#   mode      assist = draft the note, a person still approves (founder flow).
+#             auto   = approve a strong fit, reject a weak one, maybe to review
+#             (volume flow, no hand notes).
+provider = "none"          # none | dryrun | anthropic
+mode = "assist"            # assist | auto
+stages = ["review"]        # which pile the screen reads
+auto_approve_at = 0.75     # auto mode: a strong fit at or above this approves
+auto_reject_below = 0.40   # auto mode: fit below this rejects
+model = "claude-sonnet-5"  # anthropic only
+max_tokens = 700           # anthropic only
 
 [providers]
 # Which adapter to use for each stage. "dryrun" works with no API key and

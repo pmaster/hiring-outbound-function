@@ -18,6 +18,7 @@ unsubscribe_url = "https://hiring.example/unsubscribe?e={email_token}"
 per_mailbox_per_day = 18
 mailboxes           = 2
 step_gap_days       = [0, 4, 8]
+max_steps           = 0
 search_closes_days  = 10
 skip_weekdays       = [5, 6]
 send_window         = ["08:30", "16:30"]
@@ -45,6 +46,22 @@ require_postal      = true
 auto_reject_below   = 0.45
 auto_approve_above  = 0.80
 require_hand_review = true
+
+[evaluation]
+# The AI screen. It runs after scoring, judges each profile against the role,
+# and drafts the personal note the first email needs. "dryrun" reuses the
+# heuristic score offline; "anthropic" calls a model (needs ANTHROPIC_API_KEY).
+provider = "dryrun"        # dryrun | anthropic | none
+# assist: draft the note and the verdict, but a person still approves. This is
+#         the founder-review flow, sped up.
+# auto:   approve a strong fit with its note, reject a weak one, send a maybe to
+#         review. This is the volume flow: the list moves with no hand notes.
+mode = "assist"            # assist | auto
+stages = ["review"]        # which pile the screen reads
+auto_approve_at = 0.75     # in auto mode, a strong fit at or above this approves
+auto_reject_below = 0.40   # in auto mode, fit below this rejects
+model = "claude-sonnet-5"  # anthropic only
+max_tokens = 700           # anthropic only
 
 [providers]
 search  = "dryrun"

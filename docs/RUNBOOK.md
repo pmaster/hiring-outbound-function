@@ -42,6 +42,19 @@ Two to three days per role.
        python3 -m outbound import head-of-operations list.csv
        python3 -m outbound score  head-of-operations
 
+6. Optional: the AI screen. It reads the review pile, judges fit against the
+   role, and drafts the one specific note the first email needs.
+
+       python3 -m outbound evaluate head-of-operations           # dry run
+       python3 -m outbound evaluate head-of-operations --commit
+
+   Off by default (`evaluation.provider = "none"`). Set it to `anthropic` and
+   put `ANTHROPIC_API_KEY` in `.env` to turn it on. Two modes, set in
+   `settings.toml`: `assist` drafts the note and leaves the approve to a person;
+   `auto` approves a strong fit, rejects a weak one, and sends a maybe to the
+   review pile. `assist` speeds the founder flow; `auto` runs the volume flow
+   with no hand notes. See `docs/AI-EVALUATION.md`.
+
 **Do not connect a real LinkedIn account to a scraper.** Some tools ask for
 your session cookie. LinkedIn restricts accounts for it and this operation
 cannot afford to lose LinkedIn access. Read profiles in the browser and take

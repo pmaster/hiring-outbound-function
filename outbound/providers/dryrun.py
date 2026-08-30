@@ -115,6 +115,43 @@ class DryRunSend:
         return f"dryrun:{path.name}"
 
 
+class DryRunEvaluate:
+    """Offline evaluator. Reuses the heuristic score and the evidence the
+    scorer already found, so the AI flow runs and tests with no API key.
+
+    The verdict is a band on the numeric fit; the note is a real snippet from
+    this profile, not a template. It is deterministic, which is what a test and
+    a demo need.
+    """
+
+    name = "dryrun"
+
+    def __init__(self, settings: Any = None):
+        self.settings = settings
+
+    def evaluate(self, brief: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+        from ..evaluate import note_from_evidence
+
+        fit = candidate.get("score")
+        fit = float(fit) if fit is not None else 0.5
+        if fit >= 0.70:
+            verdict = "strong"
+        elif fit < 0.45:
+            verdict = "weak"
+        else:
+            verdict = "maybe"
+        evidence = [str(e) for e in (candidate.get("_evidence") or [])][:3]
+        reasons = [f"heuristic fit {fit:.2f}"] + evidence
+        return {
+            "fit": round(fit, 4),
+            "verdict": verdict,
+            "reasons": reasons,
+            "personal_note": note_from_evidence(candidate),
+            "disqualify": False,
+            "disqualify_reason": "",
+        }
+
+
 class DryRunBooking:
     name = "dryrun"
 
@@ -140,4 +177,5 @@ register("search", "dryrun")(DryRunSearch)
 register("enrich", "dryrun")(DryRunEnrich)
 register("verify", "dryrun")(DryRunVerify)
 register("send", "dryrun")(DryRunSend)
+register("evaluate", "dryrun")(DryRunEvaluate)
 register("booking", "dryrun")(DryRunBooking)

@@ -739,6 +739,30 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(result.counts.get("sent", 0), 0)
         self.assertTrue(any("domain cap" in n for n in result.notes), result.notes)
 
+    def test_max_steps_one_gives_a_single_email_with_no_follow_ups(self):
+        """The one-email flow: intro, JD link, screener link, then nothing."""
+        raw = json.loads(json.dumps(self.settings.raw))
+        raw["sending"]["max_steps"] = 1
+        one = Settings(raw=raw)
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, one, self.role)
+        pipeline.verify_emails(self.db, one, self.role)
+        pipeline.queue_next(self.db, one, self.role)
+        pipeline.send_due(self.db, one, self.role, live=False, commit=True)
+        # Everyone is at 'sent' after one email. A second queue must add no
+        # step-2 message, because the sequence is capped at one.
+        pipeline.queue_next(self.db, one, self.role)
+        step_twos = self.db.query(
+            "SELECT id FROM messages WHERE role_key = ? AND step > 1", (self.role.key,)
+        )
+        self.assertEqual(step_twos, [], "max_steps=1 must never queue a follow-up")
+        sent = self.db.query(
+            "SELECT DISTINCT step FROM messages WHERE role_key = ?", (self.role.key,)
+        )
+        self.assertEqual([r["step"] for r in sent], [1])
+
     def test_a_failed_send_is_retried_then_given_up_on(self):
         self._seed()
         for row in self.db.candidates(self.role.key, stages=["review"]):

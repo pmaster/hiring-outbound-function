@@ -32,9 +32,11 @@ one thing and does not import the pipeline.
 the screener questions all live together. Changing who we write to should
 never mean changing code.
 
-There are six provider stages: search, enrich, verify, send, booking and
-replies. Every one has a `dryrun` or offline implementation, which is why the
-whole thing runs with no keys.
+There are seven provider stages: search, enrich, verify, evaluate, send,
+booking and replies. Every one has a `dryrun` or offline implementation,
+which is why the whole thing runs with no keys. `evaluate` is the AI screen:
+its `dryrun` reuses the heuristic score, and its `anthropic` adapter calls a
+model to judge fit and draft the personal note.
 
 **Providers know nothing about the pipeline.** An adapter takes a request and
 returns a plain dict or list. `profiles.py` is the only place that maps a

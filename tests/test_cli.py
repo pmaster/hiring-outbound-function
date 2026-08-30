@@ -62,6 +62,7 @@ class TestCli(unittest.TestCase):
         for args in (
             ("score", "engineer"), ("enrich", "engineer"), ("verify", "engineer"),
             ("verify", "engineer", "--accept-risky"), ("queue", "engineer"),
+            ("evaluate", "engineer"), ("evaluate", "engineer", "--commit"),
             ("send", "engineer"), ("bookings", "sync"),
             ("suppress", "x@y.test"), ("suppress", "y.test", "--kind", "domain"),
             ("replies", "mark", "nobody@nowhere.test"),

@@ -56,6 +56,9 @@ for role in $ROLES; do
     FAILED=1
     continue
   fi
+  # AI screen. A no-op when evaluation.provider is "none" (the default). In
+  # "auto" mode it approves the strong fits so they enrich in the same run.
+  run evaluate "$role" --commit
   run enrich "$role"
   run verify "$role"
   run queue  "$role"

@@ -1,8 +1,8 @@
 """Provider adapters.
 
-Five stages, five interfaces. Every adapter is a small class with one job and
-no knowledge of the rest of the pipeline. `dryrun` implements all five with no
-network, which is why the whole thing runs out of the box.
+Seven stages, seven interfaces. Every adapter is a small class with one job
+and no knowledge of the rest of the pipeline. `dryrun` implements them all
+with no network, which is why the whole thing runs out of the box.
 
 Register a new adapter by adding it to REGISTRY at the bottom of this file.
 """
@@ -33,6 +33,22 @@ class VerifyProvider(Protocol):
 
     def verify(self, address: str) -> str:
         """Return valid, invalid, risky, catch_all or unknown."""
+
+
+class EvaluateProvider(Protocol):
+    name: str
+
+    def evaluate(self, brief: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+        """Judge one profile against a role brief.
+
+        Returns a dict with:
+          fit               float 0..1, how well the profile matches
+          verdict           "strong", "maybe" or "weak"
+          reasons           list[str], short, the evidence for the verdict
+          personal_note     str, the one specific detail for line one of email
+          disqualify        bool, a hard non-fit the score cannot see
+          disqualify_reason str, why, when disqualify is true
+        """
 
 
 class SendProvider(Protocol):
@@ -66,6 +82,7 @@ def build(kind: str, name: str, settings: Any) -> Any:
         apollo,
         calcom,
         calendly,
+        anthropic_eval,
         dryrun,
         findymail,
         imap_replies,
@@ -97,6 +114,7 @@ REGISTRY: dict[str, dict[str, Any]] = {
     "search": {},
     "enrich": {},
     "verify": {},
+    "evaluate": {},
     "send": {},
     "booking": {},
     "replies": {},
