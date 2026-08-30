@@ -266,7 +266,16 @@ class Database:
         """
         key = norm_linkedin(profile.get("linkedin_url"))
         if not key:
-            key = "noli:" + (profile.get("external_id") or profile.get("full_name") or "").strip().lower()
+            # No profile URL. Fall back to the provider's id, else name plus
+            # company, so two different people called Chris Taylor do not
+            # collapse into one row.
+            fallback = str(profile.get("external_id") or "").strip()
+            if not fallback:
+                fallback = "|".join(
+                    str(profile.get(f) or "").strip().lower()
+                    for f in ("full_name", "company", "location")
+                )
+            key = "noli:" + fallback.lower()
         existing = self.one(
             "SELECT id FROM candidates WHERE role_key = ? AND linkedin_key = ?",
             (role_key, key),

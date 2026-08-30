@@ -123,6 +123,7 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
         )
 
     if role is not None:
+        problems.extend(_template_problems(settings, role))
         if not role.is_live:
             problems.append(
                 Problem("role_not_live", f"role {role.key} has status {role.status!r}")
@@ -136,6 +137,47 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
                     f"role {role.key} puts comp in the email but comp is unset. "
                     f"A senior operator will not answer a blind approach.",
                 )
+            )
+    return problems
+
+
+def _template_problems(settings: Settings, role: Role) -> list[Problem]:
+    """Catch a missing or broken template now, not at 08:40 on a cron."""
+    from .compose import render, steps_available
+
+    problems: list[Problem] = []
+    steps = steps_available(role)
+    if not steps:
+        return [
+            Problem(
+                "no_templates",
+                f"no templates in templates/{role.template_dir}/. Expected step-1.md.",
+            )
+        ]
+    if 1 not in steps:
+        problems.append(
+            Problem("no_step_one", f"templates/{role.template_dir}/step-1.md is missing")
+        )
+    sample = {
+        "id": 0,
+        "first_name": "Sample",
+        "last_name": "Person",
+        "full_name": "Sample Person",
+        "title": "Head of Operations",
+        "company": "Example",
+        "personal_note": "A specific detail from their profile.",
+    }
+    for step in steps:
+        try:
+            rendered = render(settings, role, sample, "sample@example.com", step, strict=True)
+        except Exception as exc:
+            problems.append(
+                Problem("template_broken", f"{role.key} step {step} will not render: {exc}")
+            )
+            continue
+        for problem in message_problems(settings, rendered.body):
+            problems.append(
+                Problem(problem.code, f"{role.key} step {step}: {problem.message}")
             )
     return problems
 

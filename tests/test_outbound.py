@@ -174,6 +174,15 @@ class TestDatabase(unittest.TestCase):
         self.assertFalse(created_b)
         self.assertEqual(a, b)
 
+    def test_two_namesakes_without_a_profile_url_stay_separate(self):
+        a, _ = self.db.upsert_candidate(
+            "r", {"full_name": "Chris Taylor", "company": "Acme", "location": "Austin, TX"}
+        )
+        b, _ = self.db.upsert_candidate(
+            "r", {"full_name": "Chris Taylor", "company": "Beta", "location": "Denver, CO"}
+        )
+        self.assertNotEqual(a, b)
+
     def test_same_person_two_roles_is_two_rows(self):
         a, _ = self.db.upsert_candidate("r1", {"linkedin_url": "linkedin.com/in/jane", "full_name": "Jane"})
         b, _ = self.db.upsert_candidate("r2", {"linkedin_url": "linkedin.com/in/jane", "full_name": "Jane"})
@@ -211,6 +220,23 @@ class TestCompliance(unittest.TestCase):
         codes = {p.code for p in problems}
         self.assertIn("no_unsubscribe", codes)
         self.assertIn("no_postal", codes)
+
+    def test_doctor_catches_a_broken_template(self):
+        role = self.roles["engineer"]
+        original = role.template_dir
+        role.template_dir = "does-not-exist"
+        try:
+            codes = {p.code for p in preflight(self.settings, role)}
+        finally:
+            role.template_dir = original
+        self.assertIn("no_templates", codes)
+
+    def test_doctor_passes_every_live_role_as_shipped(self):
+        for role in self.roles.values():
+            if not role.is_live:
+                continue
+            fatal = [p for p in preflight(self.settings, role) if p.fatal]
+            self.assertEqual(fatal, [], f"{role.key}: {[str(p) for p in fatal]}")
 
     def test_preflight_blocks_a_live_brand_domain(self):
         raw = json.loads(json.dumps(self.settings.raw))
