@@ -14,7 +14,11 @@ status         = "draft"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
-comp           = "NEEDS_PETER"
+# LOW CONFIDENCE. No figure exists in any document. Modelled between
+# Brand and Funnel ($8k/mo) and Director of Marketing ($12k/mo).
+# This one genuinely needs Peter. Role stays status = "draft".
+# See docs/COMP.md.
+comp           = "$110,000 to $150,000 a year"
 comp_in_email  = true
 jd_url         = "https://CHANGEME.example/roles/brand-and-funnel"
 one_liner      = "Own every conversion step from the ad to the offer."

@@ -1,0 +1,195 @@
+# Chief of Staff. DRAFT.
+#
+# Distinct from `ops-generalist`, which is a mid-level bucket of about four
+# seats that get placed after the screener. This is one senior seat, a
+# different candidate pool, and a materially higher band.
+#
+#   ops-generalist   mid    $80k-$115k   ops managers, QA, support ops
+#   chief-of-staff   senior $105k-$145k  consulting and banking leavers, 2-4 yrs
+#
+# The load is the unowned work. 63 of 110 items on the register have no owner
+# and 15 of those are heavy. "Nobody" is the largest single carrier of heavy
+# work in the company. That is the honest scope and it is in the JD.
+#
+# status = "draft". Flip to "live" once Peter confirms this is a separate
+# search from ops-generalist rather than the top of that list.
+
+[role]
+key            = "chief-of-staff"
+title          = "Chief of Staff"
+status         = "draft"
+seats          = 1
+seniority      = "senior"
+employment     = "full time, remote"
+# Hiring Sprint Q1, Mar 2026: "$105k-$145k base + 0.25%-0.75% equity
+# (Philly 2026)". See docs/COMP.md.
+comp           = "$105,000 to $145,000 a year plus equity"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/chief-of-staff"
+one_liner      = "Take whole problems off the founder's desk and give them back finished."
+sender         = "peter"
+template_dir   = "chief-of-staff"
+daily_cap      = 15
+target_list_size = 300
+
+[icp]
+titles = [
+  "Chief of Staff", "Strategy and Operations Manager",
+  "Strategy & Operations Manager", "Business Operations Manager",
+  "Founder's Associate", "Founders Associate", "Special Projects",
+  "Special Projects Manager", "Special Projects Lead",
+  "Engagement Manager", "Senior Consultant", "Consultant",
+  "Investment Banking Associate", "Investment Banking Analyst",
+  "Corporate Strategy Manager", "Business Operations Lead",
+]
+title_excludes = [
+  "Executive Assistant", "Administrative Assistant", "Intern",
+  "Recruiter", "Partner", "Managing Director", "Sales",
+]
+# Executive Assistant is excluded deliberately. The JD says this is not that
+# job, and the two titles pull opposite populations.
+seniority              = ["senior", "manager", "lead"]
+company_headcount      = [10, 5000]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 2
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+
+keywords_any = [
+  "chief of staff", "special projects", "zero to one", "0 to 1",
+  "stood up", "from scratch", "founded", "playbook", "time study",
+  "conversion", "cross functional",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.18
+kind   = "any_of"
+field  = "title"
+values = [
+  "chief of staff", "strategy and operations", "strategy & operations",
+  "business operations", "founder's associate", "founders associate",
+  "special projects", "engagement manager", "corporate strategy",
+]
+
+[[signal]]
+key      = "consulting_or_banking_pedigree"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = [
+  "McKinsey", "Bain", "Boston Consulting", "\\bBCG\\b", "Deloitte",
+  "EY.?Parthenon", "Kearney", "L\\.?E\\.?K\\.?", "Oliver Wyman",
+  "Goldman Sachs", "Morgan Stanley", "J\\.?P\\.? Morgan", "Lazard",
+  "Evercore", "Moelis", "Houlihan",
+]
+# Peter's own note from the Mar 2026 doc: hire the Big 4 or EY-Parthenon type
+# who will actually go and fix the broken flows, not only advise on them.
+
+[[signal]]
+key      = "operated_not_only_advised"
+weight   = 0.22
+kind     = "regex_any"
+field    = "profile_text"
+patterns = [
+  "stood up", "from scratch", "built", "launched", "owned",
+  "implemented", "founded", "hired and", "ran the",
+]
+# The whole test. A consulting CV with no operating verb in it is the failure
+# mode this seat cannot carry.
+
+[[signal]]
+key      = "founded_something"
+weight   = 0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["Founder", "Co.?founder", "Founding", "started a company"]
+# Whether or not it worked. Named as a bonus in the JD.
+
+[[signal]]
+key      = "moved_a_number"
+weight   = 0.14
+kind     = "regex_any"
+field    = "profile_text"
+patterns = [
+  "\\d+%", "conversion", "show rate", "no.?show", "cycle time",
+  "throughput", "time study", "cost per",
+]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.08
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.08
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "advisory_only"
+weight   = -0.14
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["advised", "recommendations", "deliverable", "workstream", "client engagement"]
+# Present in every consulting CV. Penalised only so that an otherwise
+# identical profile with operating verbs in it ranks above one without.
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "What did you own end to end that did not exist before you arrived?",
+  "Tell me about a time you told someone more senior than you that they were wrong. What happened?",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "chief-of-staff-direct"
+titles    = ["Chief of Staff", "Founder's Associate", "Special Projects Manager"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Senior", "Manager", "Lead"]
+keywords  = "(\"stood up\" OR \"from scratch\" OR built OR launched) NOT (assistant OR calendar)"
+target    = 120
+
+[[search]]
+name      = "consulting-and-banking-leavers"
+titles    = ["Engagement Manager", "Senior Consultant", "Investment Banking Associate", "Corporate Strategy Manager"]
+geo       = ["United States"]
+seniority = ["Senior", "Manager"]
+keywords  = "(operations OR implementation OR \"post merger\" OR transformation) AND (owned OR led OR implemented)"
+target    = 120
+
+[[search]]
+name      = "biz-ops-at-startups"
+titles    = ["Strategy and Operations Manager", "Business Operations Manager", "Business Operations Lead"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200"]
+keywords  = "(conversion OR funnel OR \"cycle time\" OR \"cost per\") AND (built OR improved)"
+target    = 100

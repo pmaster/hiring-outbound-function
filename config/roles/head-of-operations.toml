@@ -15,7 +15,9 @@ seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
 # NEEDS PETER: confirm contractor vs fractional. hiring-pack.md leaves it open.
-comp           = "NEEDS_PETER"
+# Peter's own number, Hiring Sprint Q1 (content Mar 2026). Model agrees:
+# $20k/month = $240k. See docs/COMP.md.
+comp           = "$180,000 to $250,000 a year plus equity"
 comp_in_email  = true      # A senior operator will not answer a blind approach.
 jd_url         = "https://CHANGEME.example/roles/head-of-operations"
 one_liner      = "Own how the company runs, so the founder can stop being the operating system."

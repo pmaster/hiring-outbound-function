@@ -16,7 +16,9 @@ status         = "live"
 seats          = 4
 seniority      = "mid"
 employment     = "contractor, full time, remote"
-comp           = "NEEDS_PETER"
+# Hiring Sprint Q1, 'Operations Manager (the site foreman)', Mar 2026.
+# Matches seniority = "mid". See docs/COMP.md.
+comp           = "$80,000 to $115,000 a year"
 comp_in_email  = true
 jd_url         = "https://CHANGEME.example/roles/operations"
 one_liner      = "Take a department that has no head and make it work."
