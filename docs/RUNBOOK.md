@@ -134,6 +134,14 @@ email data from a vendor.
 
        python3 -m outbound report
 
+## Before the first send of the day, once
+
+    python3 -m outbound send head-of-operations --test-to you@gmail.com --live
+
+One real email to yourself. Read it as a candidate would, then read the raw
+headers. This is thirty seconds and it catches a broken token, a wrong comp
+band and a DKIM failure before three hundred people see them.
+
 ## Before you commit to a list
 
     python3 -m outbound audit head-of-operations

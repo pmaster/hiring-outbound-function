@@ -606,6 +606,85 @@ def queue_next(
     return result
 
 
+def send_test(
+    db: Database,
+    settings: Settings,
+    role: Role,
+    to_address: str,
+    step: int = 1,
+    candidate_id: int | None = None,
+    variant: str | None = None,
+    live: bool = False,
+) -> StepResult:
+    """Send one real email to an address you control.
+
+    Do this before the first candidate send, every time the copy changes, and
+    after any DNS change. Reading the raw headers of a message that actually
+    arrived is the only way to know SPF, DKIM and DMARC pass; a DNS check says
+    the records exist, not that the mail is signed with them.
+
+    It bypasses the queue entirely: nothing is recorded against a candidate,
+    nothing counts toward the daily cap, and no suppression is written.
+    """
+    result = StepResult(step=f"send-test[{role.key}]")
+    if not to_address:
+        raise OutboundError("give an address to send the test to")
+
+    if candidate_id:
+        candidate = db.candidate(int(candidate_id))
+        if not candidate:
+            raise OutboundError(f"no candidate with id {candidate_id}")
+        candidate = dict(candidate)
+    else:
+        candidate = {
+            "id": 0,
+            "first_name": "Sample",
+            "last_name": "Person",
+            "full_name": "Sample Person",
+            "title": "Head of Operations",
+            "company": "Example Company",
+            "location": "Austin, TX",
+            "personal_note": (
+                "THIS IS A TEST SEND. In a real email this line is the one "
+                "specific thing you noticed about the person."
+            ),
+        }
+    if not str(candidate.get("personal_note") or "").strip():
+        candidate["personal_note"] = "THIS IS A TEST SEND."
+
+    rendered = render(settings, role, candidate, to_address, step, variant=variant)
+    problems = message_problems(settings, rendered.body)
+    for problem in problems:
+        result.notes.append(f"compliance: {problem.message}")
+
+    identity = settings.section("identity")
+    name = str(settings.get("providers.send", "dryrun")) if live else "dryrun"
+    provider = provider_registry.build("send", name, settings)
+    provider_id = provider.send({
+        "to": to_address,
+        "from": f"{identity.get('from_name','')} <{identity.get('from_email','')}>",
+        "reply_to": identity.get("reply_to") or identity.get("from_email"),
+        "subject": rendered.subject,
+        "body": rendered.body,
+        "step": step,
+        "role_key": role.key,
+        "candidate_id": None,
+        "variant": rendered.variant,
+    })
+    result.bump("sent")
+    result.notes.append(f"variant {rendered.variant}, subject: {rendered.subject}")
+    result.notes.append(f"provider id: {provider_id}")
+    db.log_run("send-test", f"{role.key} step {step} to {to_address}", str(provider_id), not live)
+    if live:
+        result.notes.append(
+            "Open it and read the RAW headers. All three of SPF, DKIM and DMARC "
+            "must say pass. Then check it did not land in spam or promotions."
+        )
+    else:
+        result.notes.append("DRY RUN. It went to the outbox. Pass --live to actually send it.")
+    return result
+
+
 def send_due(
     db: Database,
     settings: Settings,

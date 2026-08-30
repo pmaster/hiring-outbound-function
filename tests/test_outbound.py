@@ -579,6 +579,47 @@ class TestPipeline(unittest.TestCase):
                 self.db.set_stage(cid, "bounced")
         self.assertEqual(pipeline.bounce_guard(self.settings, self.db), "")
 
+    def test_a_test_send_touches_nothing(self):
+        """It must not count against the cap, mark a candidate, or suppress."""
+        self._seed()
+        day = pipeline.sending_day(self.settings)
+        before_cap = self.db.sends_today(self.role.key, day)
+        before_stages = self.db.funnel(self.role.key)
+        result = pipeline.send_test(
+            self.db, self.settings, self.role, "me@example.com", live=False
+        )
+        self.assertEqual(result.counts.get("sent"), 1)
+        self.assertEqual(self.db.sends_today(self.role.key, day), before_cap)
+        self.assertEqual(self.db.funnel(self.role.key), before_stages)
+        self.assertEqual(
+            self.db.query("SELECT * FROM messages WHERE to_address = 'me@example.com'"), []
+        )
+
+    def test_a_test_send_can_use_a_real_candidate_and_a_variant(self):
+        self._seed()
+        row = self.db.candidates(self.role.key, stages=["review"])[0]
+        self.db.execute(
+            "UPDATE candidates SET personal_note = 'A real detail.' WHERE id = ?",
+            (row["id"],),
+        )
+        result = pipeline.send_test(
+            self.db, self.settings, self.role, "me@example.com",
+            candidate_id=int(row["id"]), variant="b", live=False,
+        )
+        self.assertEqual(result.counts.get("sent"), 1)
+        self.assertTrue(any("variant b" in n for n in result.notes), result.notes)
+
+    def test_a_test_send_needs_an_address(self):
+        with self.assertRaises(OutboundError):
+            pipeline.send_test(self.db, self.settings, self.role, "")
+
+    def test_a_test_send_supplies_its_own_note(self):
+        """Step one refuses without a personal note, and a test has no person."""
+        result = pipeline.send_test(
+            self.db, self.settings, self.role, "me@example.com", live=False
+        )
+        self.assertEqual(result.counts.get("sent"), 1)
+
     def test_role_cap_is_enforced(self):
         day = pipeline.sending_day(self.settings)
         cap = pipeline.daily_cap(self.settings, self.role)

@@ -55,8 +55,18 @@ Check your work before you send anything:
     dig +short TXT <your domain>
     dig +short TXT _dmarc.<your domain>
 
-Then send one email to a seed address at Gmail and one at Outlook. Open the
-raw headers. All three of SPF, DKIM and DMARC must say pass.
+Then send yourself a real one and read it:
+
+    python3 -m outbound send head-of-operations --test-to you@gmail.com --live
+    python3 -m outbound send head-of-operations --test-to you@outlook.com --live
+
+Open both and read the RAW headers. All three of SPF, DKIM and DMARC must say
+pass. A DNS check says the records exist; only a delivered message proves the
+mail is signed with them. Check it did not land in spam or promotions.
+
+Do this again every time the copy changes and after any DNS change. The test
+send bypasses the queue: nothing is recorded against a candidate, nothing
+counts toward the daily cap.
 
 ## 4. Warm up
 

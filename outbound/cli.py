@@ -372,6 +372,15 @@ def cmd_queue(args: argparse.Namespace) -> int:
 def cmd_send(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role = get_role(roles, args.role)
+    if args.test_to:
+        _print(
+            pipeline.send_test(
+                db, settings, role, args.test_to, step=args.step or 1,
+                candidate_id=args.candidate, variant=args.variant, live=args.live,
+            )
+        )
+        db.close()
+        return 0
     _print(
         pipeline.send_due(
             db, settings, role,
@@ -674,6 +683,13 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument("--limit", type=int)
     send.add_argument("--attest-warmup", action="store_true", help="confirm mailbox warm up is done")
     send.add_argument("--ignore-window", action="store_true")
+    send.add_argument(
+        "--test-to", metavar="ADDRESS",
+        help="send one real email to an address you control, bypassing the queue",
+    )
+    send.add_argument("--step", type=int, help="which step to test, default 1")
+    send.add_argument("--candidate", type=int, help="use a real candidate's details")
+    send.add_argument("--variant", help="which copy variant to test")
     send.set_defaults(func=cmd_send)
 
     book = sub.add_parser("bookings", help="sync, re-check, confirm or cancel bookings")

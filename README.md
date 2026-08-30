@@ -47,6 +47,7 @@ comp. Fix what it names, then run it again.
     python3 -m outbound enrich head-of-operations
     python3 -m outbound verify head-of-operations
     python3 -m outbound queue  head-of-operations
+    python3 -m outbound send   head-of-operations --test-to you@gmail.com --live
     python3 -m outbound send   head-of-operations --live
     python3 -m outbound replies sync                    # replies and bounces
     python3 -m outbound inbox                           # read what they said
