@@ -39,6 +39,11 @@ fi
 echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ)  live=${LIVE:-no}"
 FAILED=0
 
+# FIRST, before anything is queued. A follow up must never go to someone who
+# already replied, so the inbox is read before the queue is built.
+echo "--- replies and bounces"
+run replies sync || echo "replies sync skipped (IMAP not configured)"
+
 for role in $ROLES; do
   echo "--- $role"
   if ! run doctor "$role"; then
@@ -51,11 +56,6 @@ for role in $ROLES; do
   run queue  "$role"
   run send   "$role" $LIVE
 done
-
-echo "--- replies and bounces"
-# Reads the sending mailbox over IMAP. Runs before the sends above take effect
-# tomorrow, so a follow up never goes to someone who already answered.
-run replies sync || echo "replies sync skipped (IMAP not configured)"
 
 echo "--- bookings"
 run bookings sync
