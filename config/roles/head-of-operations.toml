@@ -4,8 +4,15 @@
 # failed attempts. Source: brain projects/sunbird/hiring-pack.md.
 #
 # Sources for this ICP: projects/sunbird/outbound-recruiting-sop.md section 3,
-# projects/sunbird/hiring-pack.md Part 3, and the Ops / HoP Role section of the
-# hiring Google Doc 1QFk0YOeIHfC1N2S9pg8iyu9ZGerE-TBS6DpHcGZVjrw.
+# projects/sunbird/hiring-pack.md Part 3, the Ops / HoP Role section of the
+# hiring Google Doc 1QFk0YOeIHfC1N2S9pg8iyu9ZGerE-TBS6DpHcGZVjrw, and the
+# Hiring Sprint Q1 market map (docs/SOURCE-BRIEF.md section 1.1).
+#
+# UNRESOLVED: which ops leadership title is actually hired. The source lays out
+# COO, VP Ops and Director of Ops, says "you likely need one of the following
+# three", and does not choose. The March 2026 tab commits to VP Ops while the
+# market map calls Director of Ops the sweet spot. See docs/DECISIONS.md Q14.
+# This file searches all three and lets the hand review sort them.
 
 [role]
 key            = "head-of-operations"
@@ -37,6 +44,13 @@ titles = [
   "Chief of Staff",
   "Head of Business Operations",
   "Director of Business Operations",
+  # Added from the Q1 market map, which names these verbatim as the titles to
+  # search and calls Director the sweet spot over VP and COO.
+  "Director of Strategy and Operations",
+  "Head of Central Operations",
+  "Senior Manager Operations",
+  "Head of Marketplace Operations",
+  "Director of Customer Operations",
 ]
 title_excludes = [
   "Operations Associate",
@@ -50,9 +64,18 @@ title_excludes = [
   "Intern",
 ]
 seniority         = ["director", "vp", "cxo", "owner", "partner"]
-company_headcount = [30, 300]   # below 30 they never ran a department; above 300 the system existed already
+# 30 to 300 in the outbound SOP: below 30 they never ran a department, above
+# 300 the system already existed. The Q1 market map says 50 to 500, to match
+# "operated in orgs with similar headcount". Band widened to cover both, with
+# soft edges on the signal so the middle still scores highest.
+company_headcount = [30, 500]
 geo               = ["United States"]
 geo_exclude       = ["Canada", "European Union", "Poland"]
+# Hard rule from the source: at least 50% of working hours between 9am and
+# 10pm Eastern. Filter for Eastern and Central time when building the list.
+# Comp is benchmarked to Philadelphia 2026, so start with that metro.
+timezone_rule     = "at least 50% of hours between 09:00 and 22:00 ET"
+metro_priority    = ["Philadelphia", "New York", "Newark", "Detroit"]
 min_years_experience   = 7
 min_months_in_role     = 18
 max_months_in_role     = 60
@@ -79,12 +102,14 @@ values   = ["head of operations", "director of operations", "vp operations", "sv
 
 [[signal]]
 key      = "headcount_band"
-weight   = 0.14
+weight   = 0.12
 kind     = "range"
 field    = "company_headcount"
-min      = 30
+min      = 50
 max      = 300
-# Partial credit outside the band rather than zero.
+# Partial credit outside the band rather than zero. The two sources disagree
+# on the edges (30-300 and 50-500), so the overlap scores full and both tails
+# score partial.
 soft_min = 15
 soft_max = 800
 
@@ -129,6 +154,26 @@ min      = 18
 max      = 60
 soft_min = 9
 soft_max = 96
+
+[[signal]]
+key      = "operator_pedigree"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["Uber", "DoorDash", "TaskRabbit", "Instacart", "Lyft", "Wonolo", "Deliveroo", "Grubhub", "marketplace operations", "gig", "supply operations", "Deloitte", "EY.?Parthenon", "Kearney", "\\bL\\.?E\\.?K\\.?\\b", "McKinsey", "\\bBCG\\b", "\\bBain\\b", "\\bKYC\\b", "onboarding funnel"]
+# From the market map, verbatim: "Seek a Deloitte Strategy & Operations (S&O)
+# or EY-Parthenon alum. You get 80% of the prestige and strategic thinking of
+# MBB, but 200% more willingness to actually fix your broken GHL flows"; "A
+# Kearney alum would be an absolute killer for your hardware provisioning and
+# logistics bottlenecks". Gig marketplaces are named as the operating profile.
+
+[[signal]]
+key      = "scaled_a_team"
+weight   = 0.08
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["scaled .{0,20}from \\d+ to \\d+", "grew the team", "10 to 100", "hired \\d+", "built a team of"]
+# Source nice-to-have: "has scaled a team from 10 to 100+".
 
 [[signal]]
 key      = "domain_interest"
@@ -190,6 +235,24 @@ headcount = ["11-50", "51-200", "201-500"]
 seniority = ["Director", "VP", "CXO"]
 keywords  = "(built OR \"stood up\" OR \"from scratch\" OR \"set up\") NOT (recruiter OR agency)"
 target    = 400
+
+[[search]]
+name      = "gig-marketplace-ops-us"
+titles    = ["Director of Operations", "Head of Marketplace Operations", "Director of Customer Operations", "Senior Manager Operations"]
+geo       = ["United States"]
+headcount = ["51-200", "201-500"]
+seniority = ["Director", "Senior"]
+keywords  = "(Uber OR DoorDash OR TaskRabbit OR Instacart OR Wonolo OR marketplace OR gig) AND (onboarding OR supply OR throughput)"
+target    = 300
+
+[[search]]
+name      = "consulting-alumni-operators-us"
+titles    = ["Director of Strategy and Operations", "Director of Operations", "Head of Central Operations"]
+geo       = ["United States"]
+headcount = ["51-200", "201-500"]
+seniority = ["Director", "Senior"]
+keywords  = "(Deloitte OR \"EY-Parthenon\" OR Kearney OR \"L.E.K.\" OR McKinsey OR BCG OR Bain) AND (operations OR \"strategy and operations\")"
+target    = 300
 
 [[search]]
 name      = "chief-of-staff-us"

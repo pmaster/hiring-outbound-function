@@ -71,6 +71,10 @@ def manual_checklist(role: Role, spec: Search) -> list[str]:
             f"Time in current role: {low} months"
             + (f" to {high} months" if high else " or more")
         )
+    if icp.get("timezone_rule"):
+        items.append(f"Working hours rule: {icp['timezone_rule']}")
+    if icp.get("metro_priority"):
+        items.append("Work these metros first: " + ", ".join(icp["metro_priority"]))
     if icp.get("title_excludes"):
         items.append("Exclude titles: " + ", ".join(icp["title_excludes"][:8]))
     if icp.get("geo_exclude"):

@@ -33,9 +33,9 @@ timezone            = "America/New_York"
 stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
 
 [warmup]
-# Refuse to send until the domain has been sending this long.
-min_domain_age_days   = 14
-# Refuse to send until a mailbox has completed warmup.
+# Refuse to send until a mailbox has completed warm up. Nothing here can
+# measure that, so it is an attestation: `outbound doctor` keeps reminding you
+# until you send with --attest-warmup. Ten days at this volume. See docs/SETUP.md.
 require_warmup_done   = true
 
 [booking]

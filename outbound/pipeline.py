@@ -21,7 +21,7 @@ from . import providers as provider_registry
 from .compliance import assert_sendable, geo_allowed, message_problems
 from .compose import render, steps_available
 from .config import Role, Settings
-from .db import Database
+from .db import TERMINAL_STAGES, Database
 from .errors import ComplianceError, OutboundError, SafetyStop
 from .profiles import normalize
 from .score import route, score_profile
@@ -583,9 +583,14 @@ def send_due(
         (role.key, iso(), room),
     )
     identity = settings.section("identity")
+    # sending.stop_on names the stages that halt a sequence. Anything terminal
+    # halts it too, whether or not it is listed.
+    stop_stages = {
+        str(x) for x in (settings.get("sending.stop_on", []) or [])
+    } | TERMINAL_STAGES | {"confirmed", "screened"}
     for message in due:
         candidate = db.candidate(int(message["candidate_id"]))
-        if candidate and candidate["stage"] in ("unsubscribed", "bounced", "replied", "booked", "stopped", "rejected"):
+        if candidate and candidate["stage"] in stop_stages:
             db.execute("UPDATE messages SET status = 'skipped' WHERE id = ?", (message["id"],))
             result.bump("skipped_stage")
             continue

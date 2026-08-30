@@ -1,0 +1,163 @@
+# Chief of Staff. DRAFT.
+#
+# One of the three roles Peter names as most important, and he calls the three
+# "mostly pretty overlapping/interchangeable" with Director of Ops and Quant
+# Program Manager (Sunbird Memos, 1sSRB40b_BJDnWLnx5hGGD_Q8XCEZtGmitPDZVKCstEs).
+#
+# Everything below is sourced from docs/SOURCE-BRIEF.md section 1.2, which
+# traces every claim to a fileId. status = "draft" because the comp band
+# conflicts with itself in the source (see [role] comp) and Q7 of the brief is
+# unresolved.
+
+[role]
+key            = "chief-of-staff"
+title          = "Chief of Staff"
+status         = "draft"
+seats          = 1
+seniority      = "senior generalist"
+employment     = "contractor, full time, remote"
+# Source gives two bands in one document: $105k-$145k base plus 0.25%-0.75%
+# equity, and $100k-$140k. Unreconciled. Set the real one in settings.toml.
+comp           = "NEEDS_PETER"
+comp_in_email  = true
+jd_url         = "https://CHANGEME.example/roles/chief-of-staff"
+one_liner      = "Take the low leverage work off the founder, and build the playbook where none exists."
+sender         = "peter"
+template_dir   = "chief-of-staff"
+daily_cap      = 15
+target_list_size = 300
+
+[icp]
+titles = [
+  "Chief of Staff", "Chief of Staff to CEO", "Founder's Associate",
+  "Business Operations Manager", "BizOps Manager",
+  "Strategy and Operations Lead", "Strategy and Operations Manager",
+  "Special Projects Manager", "Associate to the CEO",
+  "Executive Assistant",
+]
+title_excludes = [
+  "Intern", "Coordinator", "Receptionist", "Office Manager",
+  "Executive Assistant to the President",
+]
+# Manager to Senior Manager. The source says exclude Director and above.
+seniority              = ["manager", "senior"]
+company_headcount      = [10, 500]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 2
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 1
+# Hard rule from the source: at least 50% of working hours between 9am and
+# 10pm Eastern. Filter for Eastern and Central time when building the list.
+timezone_rule = "at least 50% of hours between 09:00 and 22:00 ET"
+
+keywords_any = [
+  "chief of staff", "founder's associate", "IB analyst", "consultant",
+  "ex-founder", "SOP", "prioritisation", "special projects",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.20
+kind   = "any_of"
+field  = "title"
+values = ["chief of staff", "founder's associate", "founders associate", "business operations manager", "bizops manager", "strategy and operations lead", "strategy and operations manager", "special projects manager", "associate to the ceo"]
+
+[[signal]]
+key      = "consulting_or_banking_pedigree"
+weight   = 0.22
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["McKinsey", "\\bBCG\\b", "Boston Consulting", "\\bBain\\b", "EY.?Parthenon", "Deloitte", "Kearney", "\\bL\\.?E\\.?K\\.?\\b", "investment banking", "Goldman", "Morgan Stanley", "\\bJ\\.?P\\.? Morgan\\b", "analyst program"]
+# Source names MBB consultants and IB analysts with 2 to 4 years as the ideal
+# background.
+
+[[signal]]
+key      = "founder_or_zero_to_one"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["co.?founder", "founded", "founding", "built the", "from scratch", "first hire", "0 to 1", "zero to one", "seed stage", "series a"]
+# "Generalist founders of failed startups" is named explicitly as a target.
+
+[[signal]]
+key      = "breadth_across_functions"
+weight   = 0.16
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["cross functional", "generalist", "hiring", "vendor", "logistics", "operations", "recruiting", "finance", "legal", "wore every hat", "whatever was needed"]
+
+[[signal]]
+key      = "wrote_process"
+weight   = 0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["SOP", "playbook", "documented", "process", "requirements", "prioriti[sz]", "workflow"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.06
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.06
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 3
+soft_max = 5
+
+[[signal]]
+key      = "too_senior"
+weight   = -0.12
+kind     = "regex_any"
+field    = "title"
+patterns = ["\\bVP\\b", "Vice President", "Chief Operating", "\\bCOO\\b", "\\bCEO\\b", "Partner"]
+# Source says exclude Director and above for this seat.
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "What did you own that had no owner before you? Two or three sentences.",
+  "Describe a time you told a founder no, and what happened.",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "chief-of-staff-consulting-us"
+titles    = ["Chief of Staff", "Founder's Associate", "Business Operations Manager", "Strategy and Operations Manager"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Manager", "Senior"]
+keywords  = "(McKinsey OR BCG OR Bain OR Deloitte OR \"EY-Parthenon\" OR \"investment banking\") NOT (intern OR recruiter)"
+target    = 250
+
+[[search]]
+name      = "ex-founder-generalists-us"
+titles    = ["Chief of Staff", "Founder's Associate", "Special Projects Manager"]
+geo       = ["United States"]
+headcount = ["2-10", "11-50", "51-200"]
+keywords  = "(co-founder OR founder OR \"founding team\") AND (operations OR \"chief of staff\")"
+target    = 200

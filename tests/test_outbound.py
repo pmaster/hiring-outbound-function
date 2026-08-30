@@ -35,10 +35,20 @@ DEMO_SETTINGS = ROOT / "sample" / "settings.demo.toml"
 # Only unambiguous tells belong here. Ordinary words that happen to appear in
 # gambling ("bonus", "trading") are not tells, and firing on them would make
 # the check useless.
+# Sources: docs/SOURCE-BRIEF.md section 4 items 1, 7 and 17, and
+# projects/sunbird/employee-pitch.md Version 1.
 T1_BANNED = [
+    # The domain itself.
     "casino", "sportsbook", "bookmaker", "gambling", "betting", "wager",
-    "advantage play", "funded account", "promotional offer",
-    "under our direction",
+    "sweepstake", "games of chance", "lottery", "advantage play",
+    # The platforms and processors. Naming them invites the pattern matching
+    # that already caused mass account bans.
+    "draftkings", "fanduel", "betmgm", "caesars", "paypal", "varo", "sofi",
+    # The model.
+    "funded account", "promotional offer", "under our direction",
+    "device commingling", "geolocation", "account separation",
+    # Internal names that must not reach a candidate.
+    "cornerstone gigs", "cornerstonegigs", "opsengine", "sunrun labs",
 ]
 
 
@@ -238,11 +248,26 @@ class TestCompliance(unittest.TestCase):
             fatal = [p for p in preflight(self.settings, role) if p.fatal]
             self.assertEqual(fatal, [], f"{role.key}: {[str(p) for p in fatal]}")
 
-    def test_preflight_blocks_a_live_brand_domain(self):
-        raw = json.loads(json.dumps(self.settings.raw))
-        raw["identity"]["from_email"] = "jobs@viewlineventures.com"
-        problems = preflight(Settings(raw=raw), None)
-        self.assertIn("forbidden_domain", {p.code for p in problems})
+    def test_preflight_blocks_the_client_and_internal_domains(self):
+        """Both source doctrines agree these must never send FTE outreach."""
+        for domain in ("cornerstonegigs.com", "sunrunlabs.com", "gmail.com"):
+            raw = json.loads(json.dumps(self.settings.raw))
+            raw["identity"]["from_email"] = f"jobs@{domain}"
+            problems = preflight(Settings(raw=raw), None)
+            fatal = {p.code for p in problems if p.fatal}
+            self.assertIn("forbidden_domain", fatal, domain)
+
+    def test_a_contested_domain_warns_rather_than_blocks(self):
+        """viewlineventures.com is the designated FTE domain in one doc and a
+        thing to protect in another. That is a decision, not a rule."""
+        for domain in ("viewlineventures.com", "sunbirdsystems.com"):
+            raw = json.loads(json.dumps(self.settings.raw))
+            raw["identity"]["from_email"] = f"jobs@{domain}"
+            problems = preflight(Settings(raw=raw), None)
+            codes = {p.code for p in problems}
+            fatal = {p.code for p in problems if p.fatal}
+            self.assertIn("contested_domain", codes, domain)
+            self.assertNotIn("forbidden_domain", fatal, domain)
 
     def test_preflight_blocks_unset_comp_when_comp_goes_in_the_email(self):
         _settings, roles = load_all(DEMO_SETTINGS)
@@ -457,6 +482,23 @@ class TestPipeline(unittest.TestCase):
     def test_live_send_refuses_a_draft_role(self):
         with self.assertRaises(ComplianceError):
             pipeline.send_due(self.db, self.settings, self.roles["controller"], live=True, attest_warmup=True)
+
+    def test_stop_on_halts_the_sequence(self):
+        """sending.stop_on is real config, not decoration."""
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        target = self.db.query(
+            "SELECT * FROM messages WHERE role_key = ? AND status = 'queued'", (self.role.key,)
+        )[0]
+        self.db.set_stage(int(target["candidate_id"]), "replied")
+        result = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        self.assertGreaterEqual(result.counts.get("skipped_stage", 0), 1)
+        after = self.db.one("SELECT status FROM messages WHERE id = ?", (target["id"],))
+        self.assertEqual(after["status"], "skipped")
 
     def test_suppressed_address_is_never_written_to(self):
         self._seed()
