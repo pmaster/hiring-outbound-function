@@ -81,8 +81,10 @@ email data from a vendor.
        python3 -m outbound queue head-of-operations
        python3 -m outbound send  head-of-operations --live
 
-   Run `send` without `--live` first to see what would go. The dry run writes
-   the emails to `data/outbox/`.
+   Run `send` without `--live` first to see what would go. Without `--live`
+   it is a preview: it renders the emails to `data/outbox/` to read, but
+   marks nothing sent, moves no one, and spends no cap, so the `--live` run
+   after it sends the same mail. `--live` is the only thing that sends.
 
 4. **Replies and bounces.**
 

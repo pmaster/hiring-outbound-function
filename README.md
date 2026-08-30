@@ -61,7 +61,7 @@ order.
 
 Everything that is safe to automate is in one script:
 
-    scripts/daily.sh              # dry run
+    scripts/daily.sh              # preview: writes the outbox, changes nothing
     scripts/daily.sh --live       # sends, up to the daily cap
 
 It does not approve candidates and it does not decide bookings. Both need a
