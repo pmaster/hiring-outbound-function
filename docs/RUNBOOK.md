@@ -84,7 +84,20 @@ email data from a vendor.
    Run `send` without `--live` first to see what would go. The dry run writes
    the emails to `data/outbox/`.
 
-4. **Bookings.**
+4. **Replies and bounces.**
+
+       python3 -m outbound replies sync
+
+   This reads the sending mailbox over IMAP, marks anyone who answered, and
+   suppresses hard bounces. Run it before `queue`, not after, so a follow up
+   never goes to someone who already replied.
+
+   Anything it misses, mark by hand:
+
+       python3 -m outbound replies mark someone@company.com
+       python3 -m outbound replies mark someone@company.com --kind unsubscribed
+
+5. **Bookings.**
 
        python3 -m outbound bookings sync
        python3 -m outbound bookings triage
@@ -98,7 +111,7 @@ email data from a vendor.
    are inside 12 hours, take the call. A late cancellation costs more than ten
    minutes.
 
-5. **Read the report.**
+6. **Read the report.**
 
        python3 -m outbound report
 
@@ -144,7 +157,8 @@ rate is much higher. Optimise for conversations, not bookings.
 | Bounces above 3 percent | Stop sending. The list source or the verifier is wrong. |
 | Emails in spam | Check SPF, DKIM and DMARC pass on a seed send. Then check the volume ramp. |
 | Cannot find emails | Add a second enrichment provider to `providers.enrich_waterfall`. |
-| A person asks to stop | `outbound suppress <address> --reason "asked to stop"`. Do this the same day. |
+| A person asks to stop | `outbound replies mark <address> --kind unsubscribed`. Same day. |
+| A follow up went to someone who replied | `replies sync` did not run, or IMAP is not configured. Fix that first, it is the worst failure here. |
 
 ## Weekly
 

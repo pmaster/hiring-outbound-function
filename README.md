@@ -46,6 +46,7 @@ comp. Fix what it names, then run it again.
     python3 -m outbound verify head-of-operations
     python3 -m outbound queue  head-of-operations
     python3 -m outbound send   head-of-operations --live
+    python3 -m outbound replies sync                    # replies and bounces
     python3 -m outbound bookings sync
     python3 -m outbound bookings triage
     python3 -m outbound report
@@ -60,6 +61,24 @@ Everything that is safe to automate is in one script:
 
 It does not approve candidates and it does not decide bookings. Both need a
 person. It prints what is waiting for you.
+
+## Replies and bounces
+
+`outbound replies sync` reads the sending mailbox over IMAP and moves anyone
+who answered out of the sequence. It also reads hard bounces off the delivery
+reports and suppresses those addresses.
+
+This matters more than it sounds. Sending "I am closing this search" to
+someone who replied four days ago is the one mistake that turns a good
+approach into a bad story.
+
+If the scan misses something, or a reply arrives by another route:
+
+    python3 -m outbound replies mark someone@company.com
+    python3 -m outbound replies mark someone@company.com --kind unsubscribed
+
+A sequencer does its own reply detection. Run `replies sync` anyway, because
+this database is what the report and the stage logic read.
 
 ## The three rules the code enforces
 

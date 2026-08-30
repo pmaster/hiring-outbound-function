@@ -292,6 +292,26 @@ def cmd_bookings(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_replies(args: argparse.Namespace) -> int:
+    from . import replies as replies_mod
+
+    settings, _roles, db = _bootstrap(args)
+    if args.action == "sync":
+        _print(replies_mod.sync(db, settings, since=args.since))
+    elif args.action == "mark":
+        if not args.address:
+            raise OutboundError("mark needs an address")
+        kind = args.kind or "replied"
+        if replies_mod.apply(db, kind, args.address, note=args.note or "marked by hand"):
+            print(f"{args.address} marked {kind}")
+        else:
+            print(f"no candidate found on {args.address}")
+    else:
+        raise OutboundError(f"unknown replies action {args.action!r}")
+    db.close()
+    return 0
+
+
 def cmd_suppress(args: argparse.Namespace) -> int:
     settings, _roles, db = _bootstrap(args)
     if args.from_file:
@@ -443,6 +463,14 @@ def build_parser() -> argparse.ArgumentParser:
     book.add_argument("--auto", action="store_true", help="act on every suggestion")
     book.add_argument("--live", action="store_true")
     book.set_defaults(func=cmd_bookings)
+
+    replies = sub.add_parser("replies", help="detect replies and bounces, and stop their follow ups")
+    replies.add_argument("action", choices=["sync", "mark"])
+    replies.add_argument("address", nargs="?")
+    replies.add_argument("--kind", choices=["replied", "bounced", "unsubscribed", "stopped"])
+    replies.add_argument("--since", help="ISO timestamp. Default: the first send.")
+    replies.add_argument("--note")
+    replies.set_defaults(func=cmd_replies)
 
     suppress = sub.add_parser("suppress", help="never contact this address, domain or profile")
     suppress.add_argument("value", nargs="?")
