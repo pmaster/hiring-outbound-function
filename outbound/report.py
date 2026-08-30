@@ -77,6 +77,45 @@ def conversions(db: Database, role_key: str | None = None) -> str:
     return "\n".join(lines)
 
 
+def variants(
+    db: Database, settings: Settings, roles: dict[str, Role], role_key: str | None = None
+) -> str:
+    """Reply and booking rate per copy variant, for the first email.
+
+    Only shown when a role actually has two versions. A split with almost no
+    sends means nothing, so the read is labelled until there is enough of it.
+    """
+    from .compose import variants_available
+
+    lines: list[str] = []
+    for key, role in sorted(roles.items()):
+        if role_key and key != role_key:
+            continue
+        if len(variants_available(role, 1)) < 2:
+            continue
+        rows = [r for r in db.variant_stats(key, step=1) if int(r["sent"] or 0)]
+        if not rows:
+            continue
+        lines.append(f"{role.title} ({key}), first email:")
+        for row in rows:
+            sent = int(row["sent"] or 0)
+            replied = int(row["replied"] or 0)
+            booked = int(row["booked"] or 0)
+            enough = "" if sent >= 50 else "   too few to read yet"
+            lines.append(
+                f"  {row['variant']}: {sent:4d} sent, {replied:3d} replied "
+                f"({_rate(replied, sent)}), {booked:3d} booked "
+                f"({_rate(booked, sent)}){enough}"
+            )
+        lines.append("")
+    if lines:
+        lines.append(
+            "A difference under about 50 sends per arm is noise. Kill the loser "
+            "when one arm is clearly ahead, then write a new challenger."
+        )
+    return "\n".join(lines)
+
+
 def next_actions(db: Database, settings: Settings, roles: dict[str, Role]) -> str:
     """One line per thing a person should do now. Ordered by what unblocks most."""
     lines: list[str] = []
@@ -170,6 +209,13 @@ def summary(db: Database, settings: Settings, roles: dict[str, Role], role_key: 
         parts.append("")
         parts.append(f"  SENDING IS HALTED: {stop}")
     parts.append("")
+    variant_block = variants(db, settings, roles, role_key)
+    if variant_block:
+        parts.append("## Copy variants")
+        parts.append("")
+        parts.append(variant_block)
+        parts.append("")
+
     parts.append("## Do next")
     parts.append("")
     parts.append(next_actions(db, settings, roles))

@@ -256,6 +256,68 @@ def cmd_questions(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_show(args: argparse.Namespace) -> int:
+    """Everything about one candidate, in order."""
+    settings, roles, db = _bootstrap(args)
+    row = db.candidate(int(args.candidate_id))
+    if not row:
+        raise OutboundError(f"no candidate with id {args.candidate_id}")
+
+    print(f"[{row['id']}] {row.get('full_name') or '?'}   role: {row['role_key']}   stage: {row['stage']}")
+    print(f"      {row.get('title') or ''} at {row.get('company') or ''}")
+    print(f"      {row.get('location') or 'location unknown'} ({row.get('country') or '??'})")
+    print(f"      {row.get('linkedin_url') or 'no profile url'}")
+    if row.get("source_search"):
+        print(f"      sourced by: {row['source_search']} via {row.get('source') or '?'}")
+    score = row.get("score")
+    if score is not None:
+        print(f"      score {score:.2f}   review: {row.get('review_state')}")
+        try:
+            detail = json.loads(row.get("score_json") or "{}")
+            for signal in sorted(detail.get("signals", []), key=lambda s: -abs(s["contribution"]))[:6]:
+                print(f"        {signal['contribution']:+.3f}  {signal['key']:28} {signal.get('detail','')[:44]}")
+            if detail.get("disqualified"):
+                print(f"        DISQUALIFIED by {detail['disqualifier']}: {detail['reason']}")
+        except json.JSONDecodeError:
+            pass
+    if row.get("personal_note"):
+        print(f"      note: {row['personal_note']}")
+    if row.get("review_note"):
+        print(f"      review note: {row['review_note']}")
+
+    emails = db.query("SELECT * FROM emails WHERE candidate_id = ? ORDER BY id", (row["id"],))
+    print()
+    print("  addresses:")
+    for email in emails or [{"address": "  none found"}]:
+        if "id" not in email:
+            print(f"    {email['address']}")
+            continue
+        print(
+            f"    {email['address']:44} {email['verify_status']:10} "
+            f"conf={email.get('confidence') or 0:.2f} via {email.get('provider') or '?'}"
+        )
+
+    print()
+    print("  timeline:")
+    for entry in db.timeline(int(row["id"])):
+        stamp = str(entry.get("ts") or "")[:19]
+        print(f"    {stamp}  {entry['kind']:34} {truncate(str(entry.get('detail') or ''), 60)}")
+
+    bookings = db.query("SELECT * FROM bookings WHERE candidate_id = ?", (row["id"],))
+    if bookings:
+        print()
+        print("  bookings:")
+        for booking in bookings:
+            recheck = booking.get("recheck_score")
+            print(
+                f"    [{booking['id']}] {booking['status']:10} {booking.get('start_at') or '?'}"
+                f"  recheck={'n/a' if recheck is None else f'{recheck:.2f}'}"
+                + (f"  {booking['recheck_note']}" if booking.get("recheck_note") else "")
+            )
+    db.close()
+    return 0
+
+
 def cmd_enrich(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role = get_role(roles, args.role)
@@ -489,6 +551,10 @@ def build_parser() -> argparse.ArgumentParser:
     questions = sub.add_parser("questions", help="print the screener booking form questions")
     questions.add_argument("role")
     questions.set_defaults(func=cmd_questions)
+
+    show = sub.add_parser("show", help="everything about one candidate")
+    show.add_argument("candidate_id", type=int)
+    show.set_defaults(func=cmd_show)
 
     enrich = sub.add_parser("enrich", help="find work emails for approved candidates")
     enrich.add_argument("role")

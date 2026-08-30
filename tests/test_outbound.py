@@ -310,6 +310,42 @@ class TestCompose(unittest.TestCase):
                         f"{role.key} step {step} leaks {word!r} above the NDA line",
                     )
 
+    def test_variants_are_discovered_and_assigned_stably(self):
+        from outbound.compose import pick_variant, variants_available
+
+        role = self.roles["head-of-operations"]
+        options = variants_available(role, 1)
+        self.assertIn("a", options)
+        self.assertGreaterEqual(len(options), 2, "expected a second first-email variant")
+        # Stable: the same person always gets the same version.
+        for candidate_id in range(20):
+            first = pick_variant(role, 1, candidate_id)
+            self.assertEqual(first, pick_variant(role, 1, candidate_id))
+            self.assertIn(first, options)
+        # And the split is even across ids.
+        assigned = [pick_variant(role, 1, i) for i in range(100)]
+        for option in options:
+            self.assertGreater(assigned.count(option), 30, option)
+
+    def test_a_role_with_one_variant_always_returns_a(self):
+        from outbound.compose import pick_variant, variants_available
+
+        role = self.roles["controller"]
+        self.assertEqual(variants_available(role, 1), ["a"])
+        self.assertEqual(pick_variant(role, 1, 7), "a")
+
+    def test_each_variant_renders_and_passes_the_linter(self):
+        from outbound.compose import variants_available
+
+        role = self.roles["head-of-operations"]
+        subjects = set()
+        for variant in variants_available(role, 1):
+            out = render(self.settings, role, self.candidate, "d@x.com", 1, variant=variant)
+            self.assertEqual(out.variant, variant)
+            subjects.add(out.subject)
+        self.assertEqual(len(subjects), len(variants_available(role, 1)),
+                         "variants should differ in subject, or there is no experiment")
+
     def test_a_per_search_comp_band_wins_over_the_role_band(self):
         """Quoting a candidate the wrong city's band is a real error."""
         role = self.roles["fulfillment-specialist"]
@@ -590,6 +626,39 @@ class TestPipeline(unittest.TestCase):
                 self.db, self.settings, draft, live=True,
                 attest_warmup=True, ignore_window=True,
             )
+
+    def test_the_variant_is_recorded_on_the_message(self):
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        rows = self.db.query(
+            "SELECT variant FROM messages WHERE role_key = ? AND step = 1", (self.role.key,)
+        )
+        self.assertTrue(rows)
+        self.assertTrue(all(r["variant"] in ("a", "b") for r in rows), rows)
+
+    def test_variant_stats_count_replies(self):
+        cid, _ = self.db.upsert_candidate(
+            self.role.key, {"linkedin_url": "linkedin.com/in/v1", "full_name": "V One"}
+        )
+        self.db.add_email(cid, "v1@example.com")
+        mid = self.db.queue_message(cid, self.role.key, 1, "v1@example.com", "s", "b",
+                                    "2026-08-01T00:00:00+00:00", variant="b")
+        self.db.mark_sent(mid, "dryrun")
+        self.db.set_stage(cid, "replied")
+        stats = {r["variant"]: r for r in self.db.variant_stats(self.role.key, 1)}
+        self.assertEqual(int(stats["b"]["sent"]), 1)
+        self.assertEqual(int(stats["b"]["replied"]), 1)
+
+    def test_the_timeline_records_why_someone_was_rejected(self):
+        self._seed()
+        rejected = self.db.candidates(self.role.key, stages=["rejected"])
+        self.assertTrue(rejected)
+        entries = self.db.timeline(int(rejected[0]["id"]))
+        self.assertTrue(any(e["kind"].startswith("scored:") for e in entries), entries)
 
     def test_stop_on_halts_the_sequence(self):
         """sending.stop_on is real config, not decoration."""

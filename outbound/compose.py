@@ -83,6 +83,7 @@ class Rendered:
     body: str
     to_address: str
     warnings: list[str]
+    variant: str = "a"
 
 
 def _read_template(path: Path) -> tuple[str, str]:
@@ -107,20 +108,53 @@ def _read_template(path: Path) -> tuple[str, str]:
     return subject, "\n".join(body_lines).strip()
 
 
-def template_path(role: Role, step: int) -> Path:
-    return TEMPLATES_DIR / role.template_dir / f"step-{step}.md"
+def template_path(role: Role, step: int, variant: str = "a") -> Path:
+    directory = TEMPLATES_DIR / role.template_dir
+    if variant and variant != "a":
+        return directory / f"step-{step}-{variant}.md"
+    return directory / f"step-{step}.md"
 
 
 def steps_available(role: Role) -> list[int]:
     directory = TEMPLATES_DIR / role.template_dir
     if not directory.exists():
         return []
-    steps = []
+    steps = set()
     for path in directory.glob("step-*.md"):
-        match = re.fullmatch(r"step-(\d+)", path.stem)
+        match = re.match(r"step-(\d+)(?:-([a-z]))?$", path.stem)
         if match:
-            steps.append(int(match.group(1)))
+            steps.add(int(match.group(1)))
     return sorted(steps)
+
+
+def variants_available(role: Role, step: int) -> list[str]:
+    """Which copy variants exist for a step.
+
+    `step-1.md` is variant "a". `step-1-b.md` is variant "b", and so on. Two
+    variants of the first email is the cheapest experiment in outbound: the
+    subject line is most of the open, and you find out in a week.
+    """
+    directory = TEMPLATES_DIR / role.template_dir
+    if not directory.exists():
+        return []
+    found = set()
+    for path in directory.glob(f"step-{step}*.md"):
+        match = re.match(rf"step-{step}(?:-([a-z]))?$", path.stem)
+        if match:
+            found.add(match.group(1) or "a")
+    return sorted(found)
+
+
+def pick_variant(role: Role, step: int, candidate_id: int) -> str:
+    """Stable per candidate, so a person always gets the same version.
+
+    Deterministic rather than random: re-rendering must not change what a
+    person was sent, and the split has to be reproducible.
+    """
+    options = variants_available(role, step)
+    if len(options) <= 1:
+        return options[0] if options else "a"
+    return options[int(candidate_id) % len(options)]
 
 
 def build_context(
@@ -218,8 +252,11 @@ def render(
     to_address: str,
     step: int,
     strict: bool = True,
+    variant: str | None = None,
 ) -> Rendered:
-    path = template_path(role, step)
+    if variant is None:
+        variant = pick_variant(role, step, int(candidate.get("id") or 0))
+    path = template_path(role, step, variant)
     subject_raw, body_raw = _read_template(path)
 
     if step == 1 and "{{personal_note}}" not in body_raw.replace(" ", ""):
@@ -243,4 +280,7 @@ def render(
     if problems and strict:
         joined = "\n".join(f"  - {p}" for p in problems)
         raise OutboundError(f"copy check failed for {path}:\n{joined}")
-    return Rendered(step=step, subject=subject, body=body, to_address=to_address, warnings=problems)
+    return Rendered(
+        step=step, subject=subject, body=body, to_address=to_address,
+        warnings=problems, variant=variant,
+    )

@@ -13,7 +13,7 @@ from typing import Any, Iterable, Sequence
 
 from .util import iso, norm_email, norm_linkedin, now
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # The funnel, in order. `stage_index` uses this, so keep it ordered.
 STAGES = [
@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS messages (
     status        TEXT NOT NULL DEFAULT 'queued',
     error         TEXT,
     attempts      INTEGER NOT NULL DEFAULT 0,
+    variant       TEXT NOT NULL DEFAULT 'a',
     UNIQUE (candidate_id, step)
 );
 CREATE INDEX IF NOT EXISTS idx_messages_status ON messages (role_key, status, send_after);
@@ -197,6 +198,7 @@ class Database:
     MIGRATIONS = [
         # (version introduced, SQL). Each runs once, and is safe to re-run.
         (2, "ALTER TABLE messages ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0"),
+        (3, "ALTER TABLE messages ADD COLUMN variant TEXT NOT NULL DEFAULT 'a'"),
     ]
 
     def _migrate(self) -> None:
@@ -469,17 +471,19 @@ class Database:
         subject: str,
         body: str,
         send_after: str,
+        variant: str = "a",
     ) -> int:
         self.conn.execute(
             "INSERT INTO messages "
-            "(candidate_id, role_key, step, to_address, subject, body, rendered_at, send_after, status) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued') "
+            "(candidate_id, role_key, step, to_address, subject, body, rendered_at, send_after, status, variant) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?) "
             "ON CONFLICT (candidate_id, step) DO UPDATE SET "
             "to_address = excluded.to_address, subject = excluded.subject, "
             "body = excluded.body, rendered_at = excluded.rendered_at, "
-            "send_after = excluded.send_after "
+            "send_after = excluded.send_after, variant = excluded.variant "
             "WHERE messages.status = 'queued'",
-            (candidate_id, role_key, step, norm_email(to_address), subject, body, iso(), send_after),
+            (candidate_id, role_key, step, norm_email(to_address), subject, body,
+             iso(), send_after, variant),
         )
         self.conn.commit()
         row = self.one(
@@ -549,6 +553,42 @@ class Database:
         return int(
             self.scalar("SELECT COUNT(DISTINCT day) FROM send_log WHERE count > 0") or 0
         )
+
+    def variant_stats(self, role_key: str | None = None, step: int = 1) -> list[dict[str, Any]]:
+        """Reply and booking rate per copy variant, for the given step."""
+        where = "WHERE m.step = ? AND m.status = 'sent'"
+        params: list[Any] = [step]
+        if role_key:
+            where += " AND m.role_key = ?"
+            params.append(role_key)
+        return self.query(
+            "SELECT m.variant, COUNT(*) AS sent, "
+            "SUM(CASE WHEN c.stage IN ('replied','booked','confirmed','screened','hired') "
+            "         THEN 1 ELSE 0 END) AS replied, "
+            "SUM(CASE WHEN c.stage IN ('booked','confirmed','screened','hired') "
+            "         THEN 1 ELSE 0 END) AS booked "
+            "FROM messages m JOIN candidates c ON c.id = m.candidate_id "
+            f"{where} GROUP BY m.variant ORDER BY m.variant",
+            params,
+        )
+
+    def timeline(self, candidate_id: int) -> list[dict[str, Any]]:
+        rows = self.query(
+            "SELECT ts, kind, detail FROM events WHERE candidate_id = ? ORDER BY ts, id",
+            (candidate_id,),
+        )
+        for message in self.query(
+            "SELECT step, variant, subject, status, sent_at, rendered_at, error "
+            "FROM messages WHERE candidate_id = ? ORDER BY step",
+            (candidate_id,),
+        ):
+            rows.append({
+                "ts": message["sent_at"] or message["rendered_at"],
+                "kind": f"message:step{message['step']}:{message['status']}",
+                "detail": f"[{message['variant']}] {message['subject']}"
+                          + (f" ERROR {message['error']}" if message["error"] else ""),
+            })
+        return sorted(rows, key=lambda r: str(r.get("ts") or ""))
 
     def bounce_rate(self, window: int = 200) -> tuple[float, int, int]:
         """(rate, bounced, sent) over the most recent `window` sends."""

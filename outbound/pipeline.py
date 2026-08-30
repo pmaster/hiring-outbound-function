@@ -158,6 +158,13 @@ def score_all(
             "UPDATE candidates SET score = ?, score_json = ?, stage = ?, updated_at = ? WHERE id = ?",
             (outcome.score, outcome.to_json(), target, iso(), row["id"]),
         )
+        # Log it, so `outbound show` can say why a person ended where they did.
+        reason = (
+            f"disqualified by {outcome.disqualifier}: {outcome.reason}"
+            if outcome.disqualified
+            else ", ".join(outcome.top_reasons(3)) or "no signal fired"
+        )
+        db.log_event(int(row["id"]), f"scored:{target}", f"{outcome.score:.3f} — {reason}")
         result.bump(target)
         if outcome.disqualified:
             result.bump(f"dq:{outcome.disqualifier}")
@@ -548,7 +555,7 @@ def queue_next(
             continue
         db.queue_message(
             row["id"], role.key, steps[0], email["address"],
-            rendered.subject, rendered.body, iso(),
+            rendered.subject, rendered.body, iso(), variant=rendered.variant,
         )
         db.set_stage(row["id"], "queued", f"step {steps[0]} queued")
         result.bump("queued_step1")
@@ -586,7 +593,7 @@ def queue_next(
             continue
         db.queue_message(
             row["id"], role.key, next_step, email["address"],
-            rendered.subject, rendered.body, iso(due),
+            rendered.subject, rendered.body, iso(due), variant=rendered.variant,
         )
         result.bump(f"queued_step{next_step}")
     return result
