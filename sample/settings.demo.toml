@@ -78,39 +78,32 @@ db_path    = "data/demo/outbound.db"
 outbox_dir = "data/demo/outbox"
 export_dir = "data/demo/exports"
 
-# Comp and the job description URL live here, not in the committed role files.
+# Only the job description URLs are overridden here, so the demo does not link
+# at the real careers site. Comp lives in the role files now and docs/COMP.md
+# says where each band came from.
 [role_overrides.head-of-operations]
-comp   = "$14,000 to $18,000 a month"
 jd_url = "https://hiring.example/roles/head-of-operations"
 
 [role_overrides.engineer]
-comp   = "$11,000 to $15,000 a month"
 jd_url = "https://hiring.example/roles/engineer"
 
 [role_overrides.ops-generalist]
-comp   = "$5,000 to $8,000 a month"
 jd_url = "https://hiring.example/roles/operations"
 
 [role_overrides.controller]
-comp   = "$12,000 to $16,000 a month"
 jd_url = "https://hiring.example/roles/controller"
 
 [role_overrides.brand-and-funnel]
-comp   = "$8,000 to $12,000 a month"
 jd_url = "https://hiring.example/roles/brand-and-funnel"
 
 [role_overrides.chief-of-staff]
-comp   = "$105,000 to $145,000 plus equity"
 jd_url = "https://hiring.example/roles/chief-of-staff"
 
 [role_overrides.quant-program-manager]
-comp   = "$90,000 to $125,000 plus bonus"
 jd_url = "https://hiring.example/roles/technical-program-manager"
 
 [role_overrides.business-systems-lead]
-comp   = "NOT SET IN ANY SOURCE DOCUMENT"
 jd_url = "https://hiring.example/roles/business-systems-lead"
 
 [role_overrides.fulfillment-specialist]
-comp   = "VARIES BY CITY - see docs/SOURCE-BRIEF.md 1.4"
 jd_url = "https://hiring.example/roles/technical-support-specialist"
