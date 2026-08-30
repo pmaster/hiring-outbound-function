@@ -611,6 +611,13 @@ def queue_next(
         email = db.primary_email(row["id"])
         if not email:
             continue
+        # Belt and braces. send_due checks this again, but an address can be
+        # suppressed by a bulk unsubscribe import while the stage is still
+        # 'sent', and there is no reason to queue a message we will not send.
+        if db.is_suppressed("email", email["address"]):
+            db.set_stage(row["id"], "unsubscribed", "suppressed before follow up")
+            result.bump("suppressed")
+            continue
         try:
             rendered = render(settings, role, dict(row), email["address"], next_step)
         except OutboundError as exc:

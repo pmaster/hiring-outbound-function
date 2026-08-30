@@ -681,7 +681,10 @@ class Database:
         )
         if not recent:
             return 0.0, 0, 0
-        addresses = [r["to_address"] for r in recent if r["to_address"]]
+        # Distinct addresses on both sides. Counting sent MESSAGES in the
+        # denominator would inflate it with follow-ups and push the rate down,
+        # which is the wrong direction for a safety guard.
+        addresses = sorted({r["to_address"] for r in recent if r["to_address"]})
         if not addresses:
             return 0.0, 0, 0
         marks = ",".join("?" for _ in addresses)

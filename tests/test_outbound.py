@@ -865,6 +865,29 @@ class TestPipeline(unittest.TestCase):
         after = self.db.candidate(int(dupe["id"]))
         self.assertEqual(after["stage"], "stopped")
 
+    def test_a_follow_up_is_not_queued_for_someone_suppressed_after_step_one(self):
+        """A bulk unsubscribe import suppresses the address without changing
+        the stage, so the follow-up loop has to check it too."""
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        pipeline.send_due(self.db, self.settings, self.role, live=False)
+        sent = self.db.candidates(self.role.key, stages=["sent"])
+        self.assertTrue(sent)
+        target = sent[0]
+        address = self.db.primary_email(int(target["id"]))["address"]
+        self.db.suppress("email", address, "bulk unsubscribe import")
+        pipeline.queue_next(self.db, self.settings, self.role)
+        followups = self.db.query(
+            "SELECT * FROM messages WHERE candidate_id = ? AND step > 1 AND status = 'queued'",
+            (target["id"],),
+        )
+        self.assertEqual(followups, [])
+        self.assertEqual(self.db.candidate(int(target["id"]))["stage"], "unsubscribed")
+
     def test_suppressed_address_is_never_written_to(self):
         self._seed()
         for row in self.db.candidates(self.role.key, stages=["review"]):
