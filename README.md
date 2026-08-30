@@ -168,6 +168,7 @@ Comp does not live in the role files, because those are committed. Put it in
 
 ## Read next
 
+- `docs/FIRST-WEEK.md` — **start here.** An ordered two week plan.
 - `docs/SETUP.md` — the domain, the mailboxes, the DNS records, the warm up.
 - `docs/RUNBOOK.md` — what to do each day, and who does it.
 - `docs/COMPLIANCE.md` — where cold email is lawful and where it is not.
