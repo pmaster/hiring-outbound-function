@@ -54,9 +54,33 @@ Then set `booking.screener_url`. Adapters exist for Cal.com and Calendly.
 
 ## 5. Job description pages. Peter. Blocks step one of every sequence.
 
-Every email links to a job description. The descriptions are written, in
-`hiring-pack.md` Part 3. They are not published anywhere. They need to live on
-the new recruiting domain, not on a live brand site.
+Every email links to a job description. The pages are now written and built:
+
+    python3 -m outbound pages
+
+That writes `site/` with a careers index, one page per live role, and an
+unsubscribe page. Self contained HTML, no external requests, works in light
+and dark. The text is in `content/jd/*.md`, drawn from `hiring-pack.md`
+Part 3 and `employee-pitch.md` Version 1.
+
+Two things left, both Peter's:
+
+1. Read them. They say "we have hired badly for this seat, four attempts in
+   two years" and "we have no financial reporting worth the name". That is
+   deliberate and it is the most persuasive part of the document to the only
+   kind of candidate we want. If you soften it, say so; do not soften it by
+   accident.
+2. Host `site/` on the recruiting domain, then set each `jd_url` in
+   `config/settings.toml`.
+
+The pages are T1 only: a small trading firm in alternative assets, around
+fifty people. No casino, no client model, no fund flow. A test enforces this
+on both the pages and the emails, so an edit that crosses the line fails the
+build rather than reaching a candidate.
+
+The unsubscribe page's form action is a placeholder. Point it at anything that
+records an address, then load the results with
+`outbound suppress --from-file`.
 
 ## 6. The platform cause test. Lulu. Blocks the inbound half, not this machine.
 

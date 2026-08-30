@@ -327,6 +327,22 @@ def cmd_suppress(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pages(args: argparse.Namespace) -> int:
+    """Build the careers page, the job descriptions and the unsubscribe page."""
+    from .pages import build_all
+
+    settings, roles = load_all(Path(args.config) if args.config else None)
+    written = build_all(settings, roles, Path(args.out) if args.out else None)
+    for path in written:
+        print(f"wrote {path}")
+    print()
+    print("Upload this directory to the recruiting domain. Not to a live brand")
+    print("domain, and do not redirect it to one. See docs/OPSEC.md.")
+    print("Then point the unsubscribe form action at something that records the")
+    print("address, and set each role's jd_url in config/settings.toml.")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role_key = get_role(roles, args.role).key if args.role else None
@@ -434,6 +450,10 @@ def build_parser() -> argparse.ArgumentParser:
     suppress.add_argument("--kind", choices=["email", "domain", "linkedin"], default="email")
     suppress.add_argument("--reason")
     suppress.set_defaults(func=cmd_suppress)
+
+    pages = sub.add_parser("pages", help="build the careers page and the job descriptions")
+    pages.add_argument("--out", help="output directory (default: site/)")
+    pages.set_defaults(func=cmd_pages)
 
     rep = sub.add_parser("report", help="funnel, conversion and what to do next")
     rep.add_argument("role", nargs="?")

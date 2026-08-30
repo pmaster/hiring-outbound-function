@@ -25,6 +25,7 @@ sent. Read the output, then read one of the `.eml` files.
     python3 -m outbound init          # creates config/settings.toml and .env
     # edit config/settings.toml: identity, screener_url, and the comp numbers
     python3 -m outbound doctor        # tells you what is still missing
+    python3 -m outbound pages         # builds site/ : careers page, JDs, unsubscribe
 
 `doctor` refuses to pass while anything says CHANGEME, while the sending
 domain is a live brand, or while a role that puts comp in the email has no
@@ -80,6 +81,8 @@ person. It prints what is waiting for you.
 | `templates/<role>/step-N.md` | The three emails. `Subject:` line, then the body. |
 | `templates/shared/` | The cancellation apology and the confirmation note. |
 | `outbound/` | The code. One module per stage. |
+| `content/jd/*.md` | The job description text, one per live role. |
+| `site/` | The built careers pages. Generated. Upload it to the recruiting domain. |
 | `sample/` | Sample profiles, sample bookings, and demo settings. |
 | `docs/` | Setup, runbook, vendors, compliance, opsec, open decisions. |
 | `data/` | The database and the outbox. Gitignored. It holds real people. |

@@ -3,6 +3,9 @@
 config/settings.toml
 config/settings.*.local.toml
 
+# Built pages. Regenerate with `outbound pages`.
+site/
+
 # Working data: the candidate database, rendered emails, exports.
 data/
 *.db

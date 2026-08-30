@@ -85,13 +85,21 @@ Put the booking URL in `booking.screener_url`.
 
 ## 6. Build the job description pages
 
-One page per live role, on the new domain. The email links to it. Use the
-descriptions in the brain repo at `projects/sunbird/hiring-pack.md` Part 3 and
-the pitch at `projects/sunbird/employee-pitch.md`.
+    python3 -m outbound pages
+
+This writes `site/`: a careers index, one page per live role, and the
+unsubscribe page. Self contained HTML, no external requests. Upload it to the
+new domain.
+
+The text is in `content/jd/*.md`. Edit it there and run the command again.
 
 Do not soften the "what we are bad at" section. It is the most persuasive part
 of the document to the only kind of candidate you want, and it filters out the
 rest.
+
+Every page is T1: a small trading firm in alternative assets, around fifty
+people. No casino, no client model, no fund flow. A test enforces that on both
+the pages and the emails.
 
 Put each URL in `config/settings.toml`:
 

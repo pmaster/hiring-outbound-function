@@ -28,6 +28,19 @@ from outbound.util import norm_linkedin, name_parts, token_for  # noqa: E402
 
 DEMO_SETTINGS = ROOT / "sample" / "settings.demo.toml"
 
+# Everything a candidate reads before the NDA is T1. It may say "a small
+# trading firm in alternative assets, around fifty people" and nothing that
+# names the domain, the client model or the fund flow.
+# See projects/sunbird/employee-pitch.md, Version 1.
+# Only unambiguous tells belong here. Ordinary words that happen to appear in
+# gambling ("bonus", "trading") are not tells, and firing on them would make
+# the check useless.
+T1_BANNED = [
+    "casino", "sportsbook", "bookmaker", "gambling", "betting", "wager",
+    "advantage play", "funded account", "promotional offer",
+    "under our direction",
+]
+
 
 def _settings_and_roles():
     return load_all(DEMO_SETTINGS)
@@ -230,6 +243,17 @@ class TestCompose(unittest.TestCase):
                 self.assertIn("unsubscribe", out.body.lower())
                 self.assertIn(self.settings.get("identity.postal_address"), out.body)
 
+    def test_no_template_leaks_above_the_nda_line(self):
+        for role in self.roles.values():
+            for step in steps_available(role):
+                out = render(self.settings, role, self.candidate, "d@x.com", step)
+                low = f"{out.subject}\n{out.body}".lower()
+                for word in T1_BANNED:
+                    self.assertNotIn(
+                        word, low,
+                        f"{role.key} step {step} leaks {word!r} above the NDA line",
+                    )
+
     def test_step_one_refuses_without_a_personal_note(self):
         candidate = dict(self.candidate, personal_note="")
         with self.assertRaises(OutboundError):
@@ -283,7 +307,8 @@ class TestPipeline(unittest.TestCase):
         out = Path(self.dir.name) / "review.csv"
         count = pipeline.export_review(self.db, self.role, out)
         self.assertGreater(count, 0)
-        rows = list(_csv.DictReader(out.open(encoding="utf-8")))
+        with out.open(encoding="utf-8") as handle:
+            rows = list(_csv.DictReader(handle))
         self.assertEqual(len(rows), count)
         for index, row in enumerate(rows):
             row["decision"] = "approve" if index == 0 else "reject"
@@ -302,7 +327,8 @@ class TestPipeline(unittest.TestCase):
         self._seed()
         out = Path(self.dir.name) / "review.csv"
         pipeline.export_review(self.db, self.role, out)
-        rows = list(_csv.DictReader(out.open(encoding="utf-8")))
+        with out.open(encoding="utf-8") as handle:
+            rows = list(_csv.DictReader(handle))
         rows[0]["decision"] = "approve"
         rows[0]["personal_note"] = ""
         with out.open("w", newline="", encoding="utf-8") as handle:
@@ -410,6 +436,70 @@ class TestBookings(unittest.TestCase):
         booking = self.db.one("SELECT * FROM bookings WHERE provider_id = 'x1'")
         with self.assertRaises(OutboundError):
             bookings_mod.decide(self.db, self.settings, self.roles, int(booking["id"]), "cancel")
+
+
+class TestPages(unittest.TestCase):
+    def setUp(self):
+        self.settings, self.roles = _settings_and_roles()
+        self.dir = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_markdown_subset(self):
+        from outbound.pages import markdown_to_html
+
+        title, body = markdown_to_html(
+            "# Title\n\nA lede.\n\n## Section\n\n- one\n- two\n\nTail with **bold**."
+        )
+        self.assertEqual(title, "Title")
+        self.assertIn('<p class="lede">A lede.</p>', body)
+        self.assertIn("<h2>Section</h2>", body)
+        self.assertEqual(body.count("<li>"), 2)
+        self.assertIn("<strong>bold</strong>", body)
+
+    def test_markdown_escapes_html(self):
+        from outbound.pages import markdown_to_html
+
+        _title, body = markdown_to_html("# A\n\n<script>alert(1)</script>")
+        self.assertNotIn("<script>", body)
+        self.assertIn("&lt;script&gt;", body)
+
+    def test_build_all_writes_every_live_role(self):
+        from outbound.pages import build_all
+
+        out = Path(self.dir.name)
+        written = build_all(self.settings, self.roles, out)
+        names = {p.name for p in written}
+        self.assertIn("index.html", names)
+        self.assertIn("unsubscribe.html", names)
+        for role in self.roles.values():
+            if role.is_live:
+                self.assertIn(f"{role.key}.html", names)
+            else:
+                self.assertNotIn(f"{role.key}.html", names)
+
+    def test_pages_carry_no_unrendered_tokens_and_no_em_dash(self):
+        from outbound.pages import build_all
+
+        out = Path(self.dir.name)
+        for path in build_all(self.settings, self.roles, out):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("{{", text, f"{path.name} has an unrendered token")
+            body = text.split("<body>", 1)[1]
+            self.assertNotIn("\u2014", body, f"{path.name} has an em dash")
+
+    def test_pages_keep_the_t1_line(self):
+        """No page may name the client model, a casino, or the fund flow."""
+        from outbound.pages import build_all
+
+        # Only terms that give away the model. Ordinary words that happen to
+        # appear in gambling ("bonus", "trading") are not tells and firing on
+        # them makes the test useless.
+        for path in build_all(self.settings, self.roles, Path(self.dir.name)):
+            low = path.read_text(encoding="utf-8").lower()
+            for word in T1_BANNED:
+                self.assertNotIn(word, low, f"{path.name} leaks {word!r} above the NDA line")
 
 
 class TestConfig(unittest.TestCase):
