@@ -95,6 +95,10 @@ enrich  = "dryrun"     # dryrun | apollo | rocketreach | findymail | prospeo | d
 verify  = "dryrun"     # dryrun | millionverifier | neverbounce | zerobounce | none
 send    = "dryrun"     # dryrun | instantly | smartlead | smtp
 booking = "dryrun"     # dryrun | calcom | calendly | manual
+# Where replies and bounces are read from. "imap" reads the sending mailbox,
+# which is right when the mailboxes are yours. Point it at the sequencer when
+# one owns the sending, because that is where the replies land.
+replies = "imap"       # imap | instantly
 
 # Enrichment waterfall. Tried in order until one returns an address.
 # Overrides `providers.enrich` when non-empty.

@@ -32,6 +32,10 @@ one thing and does not import the pipeline.
 the screener questions all live together. Changing who we write to should
 never mean changing code.
 
+There are six provider stages: search, enrich, verify, send, booking and
+replies. Every one has a `dryrun` or offline implementation, which is why the
+whole thing runs with no keys.
+
 **Providers know nothing about the pipeline.** An adapter takes a request and
 returns a plain dict or list. `profiles.py` is the only place that maps a
 vendor's field names to ours, so adding a provider means adding aliases there,

@@ -42,6 +42,13 @@ class SendProvider(Protocol):
         """Send one message. Return a provider id."""
 
 
+class RepliesProvider(Protocol):
+    name: str
+
+    def fetch_replies(self, since: str | None = None) -> list[dict[str, Any]]:
+        """Return [{from_address, subject, body, date}] for inbound mail."""
+
+
 class BookingProvider(Protocol):
     name: str
 
@@ -61,6 +68,7 @@ def build(kind: str, name: str, settings: Any) -> Any:
         calendly,
         dryrun,
         findymail,
+        imap_replies,
         instantly,
         manual,
         millionverifier,
@@ -91,6 +99,7 @@ REGISTRY: dict[str, dict[str, Any]] = {
     "verify": {},
     "send": {},
     "booking": {},
+    "replies": {},
 }
 
 

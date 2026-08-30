@@ -80,8 +80,11 @@ If the scan misses something, or a reply arrives by another route:
     python3 -m outbound replies mark someone@company.com
     python3 -m outbound replies mark someone@company.com --kind unsubscribed
 
-A sequencer does its own reply detection. Run `replies sync` anyway, because
-this database is what the report and the stage logic read.
+Where it reads from is configurable. `providers.replies = "imap"` reads the
+sending mailbox, which is right when the mailboxes are yours. Set it to
+`"instantly"` when the sequencer owns the sending, because that is where the
+replies land. Either way this database is what the report and the stage logic
+read.
 
 ## The four rules the code enforces
 

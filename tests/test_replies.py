@@ -133,10 +133,39 @@ class TestApply(unittest.TestCase):
             inbound(self.address),
             inbound("stranger@nowhere.com"),
         ]
-        with mock.patch.object(replies, "fetch_imap", lambda since=None, folders=("INBOX",): items):
+        with mock.patch.object(replies, "fetch", lambda settings, since=None: items):
             result = replies.sync(self.db, self.settings)
         self.assertEqual(result.counts.get("replied"), 1)
         self.assertEqual(result.counts.get("ignored"), 1)
+
+    def test_fetch_routes_through_the_configured_provider(self):
+        """The reply source is configurable, so a sequencer's inbox works too."""
+        rows = [{"from_address": "A@Example.com", "subject": "Re: x", "body": "yes", "date": ""}]
+
+        class FakeProvider:
+            name = "fake"
+
+            def __init__(self, _settings):
+                pass
+
+            def fetch_replies(self, since=None):
+                return rows
+
+        from outbound import providers
+
+        providers.REGISTRY["replies"]["fake"] = FakeProvider
+        try:
+            import json as _json
+
+            from outbound.config import Settings
+
+            raw = _json.loads(_json.dumps(self.settings.raw))
+            raw["providers"]["replies"] = "fake"
+            out = replies.fetch(Settings(raw=raw))
+        finally:
+            providers.REGISTRY["replies"].pop("fake", None)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0].from_address, "a@example.com")
 
 
 if __name__ == "__main__":

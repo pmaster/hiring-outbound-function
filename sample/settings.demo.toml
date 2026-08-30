@@ -52,6 +52,10 @@ enrich  = "dryrun"
 verify  = "dryrun"
 send    = "dryrun"
 booking = "dryrun"
+# Where replies and bounces are read from. "imap" reads the sending mailbox,
+# which is right when the mailboxes are yours. Point it at the sequencer when
+# one owns the sending, because that is where the replies land.
+replies = "imap"        # imap | instantly
 enrich_waterfall = []
 
 [limits]

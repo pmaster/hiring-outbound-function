@@ -180,6 +180,30 @@ def written_addresses(db: Database) -> set[str]:
     }
 
 
+def fetch(settings: Any, since: str | None = None) -> list[Inbound]:
+    """Inbound mail from whichever source is configured.
+
+    `imap` reads the sending mailbox, which is right when the mailboxes are
+    yours. A sequencer keeps replies in its own inbox, so when one is sending,
+    point this at the sequencer instead.
+    """
+    from . import providers as provider_registry
+
+    name = str(settings.get("providers.replies", "imap")) if hasattr(settings, "get") else "imap"
+    provider = provider_registry.build("replies", name, settings)
+    if provider is None:
+        return []
+    return [
+        Inbound(
+            from_address=norm_email(row.get("from_address") or ""),
+            subject=str(row.get("subject") or ""),
+            body=str(row.get("body") or ""),
+            date=str(row.get("date") or ""),
+        )
+        for row in provider.fetch_replies(since=since) or []
+    ]
+
+
 def sync(db: Database, settings: Any, since: str | None = None) -> StepResult:
     result = StepResult(step="replies:sync")
     written = written_addresses(db)
@@ -189,7 +213,7 @@ def sync(db: Database, settings: Any, since: str | None = None) -> StepResult:
     if since is None:
         earliest = db.scalar("SELECT MIN(sent_at) FROM messages WHERE status = 'sent'")
         since = str(earliest) if earliest else iso()
-    for item in fetch_imap(since=since):
+    for item in fetch(settings, since=since):
         kind, address = classify(item, written)
         if kind == "ignore":
             result.bump("ignored")

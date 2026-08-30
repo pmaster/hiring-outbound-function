@@ -295,6 +295,36 @@ class TestSendAdapters(ProviderTestCase):
         self.assertEqual(recorder.last["params"]["api_key"], "tok")
 
 
+class TestRepliesAdapters(ProviderTestCase):
+    def test_instantly_reads_received_mail_from_the_unibox(self):
+        settings = settings_with("instantly", {"campaign_id": "c1"})
+        recorder = Recorder({
+            "items": [{
+                "from_address_email": "Dana@Acme.com",
+                "subject": "Re: the ops seat",
+                "body_text": "Happy to talk.",
+                "timestamp_created": "2026-09-01T10:00:00Z",
+            }],
+        })
+        with mock.patch.object(httpjson, "get", recorder):
+            adapter = providers.build("replies", "instantly", settings)
+            out = adapter.fetch_replies()
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["from_address"], "Dana@Acme.com")
+        self.assertTrue(recorder.last["url"].endswith("/api/v2/emails"))
+        self.assertEqual(recorder.last["params"]["email_type"], "received")
+        self.assertEqual(recorder.last["params"]["campaign_id"], "c1")
+
+    def test_imap_replies_adapter_delegates(self):
+        from outbound import replies as replies_mod
+
+        fake = [replies_mod.Inbound("a@b.com", "s", "body", "")]
+        with mock.patch.object(replies_mod, "fetch_imap", lambda since=None, folders=("INBOX",): fake):
+            adapter = providers.build("replies", "imap", self.settings)
+            out = adapter.fetch_replies()
+        self.assertEqual(out[0]["from_address"], "a@b.com")
+
+
 class TestBookingAdapters(ProviderTestCase):
     def test_calcom_uses_a_different_version_per_endpoint(self):
         """cal-api-version is per endpoint. Listing wants 2026-05-01 and
