@@ -1,12 +1,12 @@
-Subject: {{role_title}} seat at a fifty person trading firm
+Subject: Brand and funnel seat, thirty thousand applicants a month
 
 {{first_name}},
 
 {{personal_note}}
 
-I run a trading firm in alternative assets, about fifty people, and I am hiring a {{role_title}}. {{role_one_liner}} Contractor, remote, {{comp}}. Description: {{jd_url}}
+I run a trading firm in alternative assets, about fifty people. We take around thirty thousand applications a month and most of them hear nothing back. I am hiring someone to own every conversion step from the ad to the offer. Contractor, remote, {{comp}}. Description: {{jd_url}}
 
-DRAFT. This role is not live. Peter has to settle the comp and the description before anything sends.
+I do this work personally today, badly, alongside four other jobs. The one number that decides both the media spend and the volume requirement has never been baselined.
 
 Worth {{screener_minutes}} minutes? {{screener_url}}
 

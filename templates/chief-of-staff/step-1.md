@@ -1,12 +1,12 @@
-Subject: {{role_title}} seat at a fifty person firm
+Subject: Chief of Staff at a fifty person trading firm
 
 {{first_name}},
 
 {{personal_note}}
 
-I run a trading firm in alternative assets, about fifty people. I am hiring a {{role_title}}. {{role_one_liner}} Contractor, remote, {{comp}}. Description: {{jd_url}}
+I run a trading firm in alternative assets, about fifty people. I am hiring a Chief of Staff, because I am currently also the acting operations lead, the product owner and the project manager, and that is not working. Contractor, remote, {{comp}}. Description: {{jd_url}}
 
-DRAFT. This role is not live. The comp band and the job description are unsettled, and nothing sends until they are.
+The job is not support. It is taking the things nobody owns, owning them until they work, then handing them off. First three: the recruiting funnel, a support function that does not exist, and my calendar.
 
 Worth {{screener_minutes}} minutes? {{screener_url}}
 

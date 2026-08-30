@@ -1,8 +1,12 @@
-Subject: Re: {{role_title}} seat at a fifty person firm
+Subject: Re: {{role_title}} opening near you
 
 {{first_name}},
 
-DRAFT. Write the objection handler here once the role is live. One fact that answers the obvious question about the seat, and nothing else.
+The honest downsides, because you should hear them now rather than in week two.
+
+There is a real amount of waiting. Some of the work is repetitive. The software you would use was built badly by other companies and being unbothered by that is most of the job. There is local travel most days.
+
+The upside is that it is measurable, you get better at it fast, and we promote off output rather than off tenure.
 
 {{comp}}, {{employment}}. Details: {{jd_url}}
 

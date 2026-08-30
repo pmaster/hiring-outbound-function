@@ -4,16 +4,30 @@
 # Secrets do NOT go here. Put secrets in .env (see .env.example).
 
 [identity]
-# The brand that sends. This must NOT be viewlineventures.com or
-# sunbirdsystems.com. See docs/OPSEC.md for why.
-sending_domain    = "CHANGEME.example"
-from_name         = "CHANGEME"
-from_email        = "CHANGEME@CHANGEME.example"
-reply_to          = "CHANGEME@CHANGEME.example"
-# CAN-SPAM requires a real postal address in every commercial email.
+# DECIDED by Peter, 2026-08-30: outbound sends from viewlineventures.com.
+#
+# That domain is designated for full-time hiring in Peter's scoping doc and it
+# already carries job posting notifications. The outbound SOP argued against
+# it, because a complaint cluster on a domain that also carries normal business
+# email takes the business email down with it. Peter has weighed that and
+# chosen. Setting `sending_domain_decided_on` records the decision and stops
+# `outbound doctor` asking again.
+#
+# What still follows from the SOP's argument, and is worth doing:
+#   - Send from a dedicated mailbox, not from a mailbox anyone relies on.
+#   - Keep the volume low. The caps below are already low.
+#   - Watch the DMARC reports. `outbound dns` checks the records are right.
+sending_domain    = "viewlineventures.com"
+sending_domain_decided_on = "2026-08-30"
+from_name         = "Peter"
+from_email        = "peterm@viewlineventures.com"
+reply_to          = "peterm@viewlineventures.com"
+# CAN-SPAM requires a real physical postal address in every commercial email.
+# This is the ONE field that cannot be guessed. Put the registered address of
+# the entity that is doing the hiring. `outbound doctor` blocks until it is set.
 postal_address    = "CHANGEME Street, CHANGEME City, ST 00000, USA"
-careers_page      = "https://CHANGEME.example/careers"
-unsubscribe_url   = "https://CHANGEME.example/unsubscribe?e={email_token}"
+careers_page      = "https://viewlineventures.com/careers"
+unsubscribe_url   = "https://viewlineventures.com/unsubscribe?e={email_token}"
 
 [sending]
 # Emails per mailbox per working day. Keep low. 15-20 is the founder-send
@@ -39,7 +53,7 @@ stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
 require_warmup_done   = true
 
 [booking]
-# The 10 minute screener.
+# The 10 minute screener. Create it, then paste the link here.
 screener_url        = "https://cal.com/CHANGEME/screener-10min"
 screener_minutes    = 10
 # Cancel a booking no later than this many hours before it starts.

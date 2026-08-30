@@ -12,15 +12,16 @@
 [role]
 key            = "chief-of-staff"
 title          = "Chief of Staff"
-status         = "draft"
+status         = "live"
 seats          = 1
 seniority      = "senior generalist"
 employment     = "contractor, full time, remote"
 # Source gives two bands in one document: $105k-$145k base plus 0.25%-0.75%
 # equity, and $100k-$140k. Unreconciled. Set the real one in settings.toml.
-comp           = "NEEDS_PETER"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$105,000 to $145,000 a year, plus equity"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/chief-of-staff"
+jd_url         = "https://viewlineventures.com/roles/chief-of-staff"
 one_liner      = "Take the low leverage work off the founder, and build the playbook where none exists."
 sender         = "peter"
 template_dir   = "chief-of-staff"

@@ -1,8 +1,10 @@
-Subject: Re: {{role_title}} seat at a fifty person firm
+Subject: Re: Automations and CRM seat, fifty person firm
 
 {{first_name}},
 
-DRAFT. Write the objection handler here once the role is live. One fact that answers the obvious question about the seat, and nothing else.
+One thing I should say plainly.
+
+We have not built a good way to assess people for this seat, so I take these conversations myself and they are direct rather than polished. If you would rather be assessed by a rubric, this will annoy you.
 
 {{comp}}, {{employment}}. Details: {{jd_url}}
 

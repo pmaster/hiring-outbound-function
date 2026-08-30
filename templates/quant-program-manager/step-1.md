@@ -1,12 +1,12 @@
-Subject: {{role_title}} seat at a fifty person firm
+Subject: Technical Program Manager, execution operations
 
 {{first_name}},
 
 {{personal_note}}
 
-I run a trading firm in alternative assets, about fifty people. I am hiring a {{role_title}}. {{role_one_liner}} Contractor, remote, {{comp}}. Description: {{jd_url}}
+I run a trading firm in alternative assets, about fifty people. Our execution work is high volume and detailed, done by people following playbooks against software other companies built badly. I am hiring someone to own the numbers on it. Contractor, remote, {{comp}}. Description: {{jd_url}}
 
-DRAFT. This role is not live. The comp band and the job description are unsettled, and nothing sends until they are.
+Output per person varies by a factor of seven across the same role, and nothing logs errors anywhere in the business. That is the work, and it is measurable from day one.
 
 Worth {{screener_minutes}} minutes? {{screener_url}}
 

@@ -1,8 +1,10 @@
-Subject: Re: {{role_title}} seat at a fifty person trading firm
+Subject: Re: Brand and funnel seat, thirty thousand applicants a month
 
 {{first_name}},
 
-DRAFT. Write the objection handler here once the role is live. One fact that answers the obvious question about the seat.
+What you would actually own, in order.
+
+A new brand and funnel build, which is the biggest single piece of work in flight here. A separate employer brand with its own site and creatives. The rejection experience for the applicants we currently blackhole. Nobody runs paid acquisition at all; I call it the easy half and it still does not happen.
 
 {{comp}}, {{employment}}. Details: {{jd_url}}
 

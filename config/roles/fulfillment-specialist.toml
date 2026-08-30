@@ -26,15 +26,16 @@
 [role]
 key            = "fulfillment-specialist"
 title          = "Technical Support Specialist"
-status         = "draft"
+status         = "live"
 seats          = 15
 seniority      = "entry"
 employment     = "contract, hybrid, daily local travel"
 # Comp varies BY CITY. Do not put a single band in the email. Set the band per
 # search, or split this into one role file per metro before going live.
-comp           = "NEEDS_PETER"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$80,000 to $105,000 a year"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/technical-support-specialist"
+jd_url         = "https://viewlineventures.com/roles/technical-support-specialist"
 one_liner      = "Run the process exactly, catch what other people miss, and say when something looks wrong."
 sender         = "recruiting"
 template_dir   = "fulfillment-specialist"

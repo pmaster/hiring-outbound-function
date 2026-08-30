@@ -1,10 +1,12 @@
-Subject: Re: {{role_title}} seat at a fifty person firm
+Subject: Re: Technical Program Manager, execution operations
 
 {{first_name}},
 
-DRAFT. Write the objection handler here once the role is live. One fact that answers the obvious question about the seat, and nothing else.
+The part people ask about is where this sits.
 
-{{comp}}, {{employment}}. Details: {{jd_url}}
+Between the execution floor and engineering. You own the service levels and the error rates, and you write the requirements that make the tooling fit the work instead of the other way round. You are not managing a sprint board.
+
+{{comp}}, {{employment}}. At least half your hours need to overlap 09:00 to 22:00 Eastern. Details: {{jd_url}}
 
 {{screener_url}}
 

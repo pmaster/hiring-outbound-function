@@ -125,14 +125,17 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
             )
         )
     elif domain in CONTESTED_SENDING_DOMAINS:
-        problems.append(
-            Problem(
-                "contested_domain",
-                f"{domain} is {CONTESTED_SENDING_DOMAINS[domain]} "
-                f"Sending from it is a decision someone has to make on purpose.",
-                fatal=False,
+        decided = str(settings.get("identity.sending_domain_decided_on", "")).strip()
+        if not decided:
+            problems.append(
+                Problem(
+                    "contested_domain",
+                    f"{domain} is {CONTESTED_SENDING_DOMAINS[domain]} "
+                    f"Sending from it is a decision someone has to make on "
+                    f"purpose. Record it with identity.sending_domain_decided_on.",
+                    fatal=False,
+                )
             )
-        )
     if domain and not re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", domain):
         problems.append(Problem("bad_domain", f"sending domain {domain!r} looks wrong"))
 

@@ -257,17 +257,22 @@ class TestCompliance(unittest.TestCase):
             fatal = {p.code for p in problems if p.fatal}
             self.assertIn("forbidden_domain", fatal, domain)
 
-    def test_a_contested_domain_warns_rather_than_blocks(self):
+    def test_a_contested_domain_warns_until_the_decision_is_recorded(self):
         """viewlineventures.com is the designated FTE domain in one doc and a
-        thing to protect in another. That is a decision, not a rule."""
+        thing to protect in another. That is a decision, not a rule, so it
+        warns until someone records having made it."""
         for domain in ("viewlineventures.com", "sunbirdsystems.com"):
             raw = json.loads(json.dumps(self.settings.raw))
             raw["identity"]["from_email"] = f"jobs@{domain}"
+            raw["identity"].pop("sending_domain_decided_on", None)
             problems = preflight(Settings(raw=raw), None)
-            codes = {p.code for p in problems}
-            fatal = {p.code for p in problems if p.fatal}
-            self.assertIn("contested_domain", codes, domain)
-            self.assertNotIn("forbidden_domain", fatal, domain)
+            self.assertIn("contested_domain", {p.code for p in problems}, domain)
+            self.assertNotIn(
+                "forbidden_domain", {p.code for p in problems if p.fatal}, domain
+            )
+            raw["identity"]["sending_domain_decided_on"] = "2026-08-30"
+            after = preflight(Settings(raw=raw), None)
+            self.assertNotIn("contested_domain", {p.code for p in after}, domain)
 
     def test_preflight_blocks_unset_comp_when_comp_goes_in_the_email(self):
         _settings, roles = load_all(DEMO_SETTINGS)
@@ -309,6 +314,15 @@ class TestCompose(unittest.TestCase):
         candidate = dict(self.candidate, personal_note="")
         with self.assertRaises(OutboundError):
             render(self.settings, self.roles["head-of-operations"], candidate, "d@x.com", 1)
+
+    def test_linter_catches_unfinished_copy(self):
+        for marker in ("DRAFT. Not live yet.", "TODO: write this",
+                       "TBD", "lorem ipsum dolor", "[insert name]"):
+            problems = lint("A subject", f"Some text. {marker} More text.")
+            self.assertTrue(
+                any("unfinished copy marker" in p for p in problems),
+                f"{marker!r} was not caught",
+            )
 
     def test_linter_catches_em_dash_and_ai_tells(self):
         problems = lint("Hi", "I hope this email finds you well — really.")
@@ -480,8 +494,15 @@ class TestPipeline(unittest.TestCase):
             pipeline.send_due(self.db, broken, self.role, live=True, attest_warmup=True)
 
     def test_live_send_refuses_a_draft_role(self):
+        import copy
+
+        draft = copy.deepcopy(self.roles["controller"])
+        draft.status = "draft"
         with self.assertRaises(ComplianceError):
-            pipeline.send_due(self.db, self.settings, self.roles["controller"], live=True, attest_warmup=True)
+            pipeline.send_due(
+                self.db, self.settings, draft, live=True,
+                attest_warmup=True, ignore_window=True,
+            )
 
     def test_stop_on_halts_the_sequence(self):
         """sending.stop_on is real config, not decoration."""
@@ -591,7 +612,7 @@ class TestPages(unittest.TestCase):
         self.assertIn("&lt;script&gt;", body)
 
     def test_build_all_writes_every_live_role(self):
-        from outbound.pages import build_all
+        from outbound.pages import CONTENT_DIR, build_all
 
         out = Path(self.dir.name)
         written = build_all(self.settings, self.roles, out)
@@ -599,10 +620,21 @@ class TestPages(unittest.TestCase):
         self.assertIn("index.html", names)
         self.assertIn("unsubscribe.html", names)
         for role in self.roles.values():
-            if role.is_live:
+            has_content = (CONTENT_DIR / f"{role.key}.md").exists()
+            if role.is_live and has_content:
                 self.assertIn(f"{role.key}.html", names)
-            else:
+            elif not role.is_live:
                 self.assertNotIn(f"{role.key}.html", names)
+
+    def test_every_live_role_has_a_job_description(self):
+        """A live role with no page has an email linking to a 404."""
+        from outbound.pages import CONTENT_DIR
+
+        missing = [
+            r.key for r in self.roles.values()
+            if r.is_live and not (CONTENT_DIR / f"{r.key}.md").exists()
+        ]
+        self.assertEqual(missing, [], f"live roles with no content/jd page: {missing}")
 
     def test_pages_carry_no_unrendered_tokens_and_no_em_dash(self):
         from outbound.pages import build_all

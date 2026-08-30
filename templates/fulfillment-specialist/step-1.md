@@ -1,12 +1,12 @@
-Subject: {{role_title}} seat at a fifty person firm
+Subject: {{role_title}} opening near you
 
 {{first_name}},
 
 {{personal_note}}
 
-I run a trading firm in alternative assets, about fifty people. I am hiring a {{role_title}}. {{role_one_liner}} Contractor, remote, {{comp}}. Description: {{jd_url}}
+I run a trading firm in alternative assets, about fifty people. I am hiring for a role that is mostly this: follow the process exactly, notice when a small detail is off, and say so rather than carry on. Contract, {{comp}}. Description: {{jd_url}}
 
-DRAFT. This role is not live. The comp band and the job description are unsettled, and nothing sends until they are.
+New graduates and people early in their career are welcome. There is regular local travel, so you need reliable transport. If you have been ranked at a strategy or competitive game, mention it, because it selects for the same thing this job needs.
 
 Worth {{screener_minutes}} minutes? {{screener_url}}
 

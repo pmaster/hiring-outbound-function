@@ -10,15 +10,16 @@
 [role]
 key            = "quant-program-manager"
 title          = "Technical Program Manager"
-status         = "draft"
+status         = "live"
 seats          = 1
 seniority      = "manager"
 employment     = "contractor, full time, remote"
 # Source: $90k-$125k base plus performance bonuses, listed as "Quant
 # Operations / Project Manager (The Technical Bridge)".
-comp           = "NEEDS_PETER"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$90,000 to $125,000 a year, plus performance bonus"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/technical-program-manager"
+jd_url         = "https://viewlineventures.com/roles/technical-program-manager"
 one_liner      = "Sit between the execution floor and engineering, and hold both to an error rate."
 sender         = "peter"
 template_dir   = "quant-program-manager"

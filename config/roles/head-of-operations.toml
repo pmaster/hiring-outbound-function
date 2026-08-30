@@ -22,9 +22,10 @@ seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
 # NEEDS PETER: confirm contractor vs fractional. hiring-pack.md leaves it open.
-comp           = "NEEDS_PETER"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$135,000 to $175,000 a year, plus equity"
 comp_in_email  = true      # A senior operator will not answer a blind approach.
-jd_url         = "https://CHANGEME.example/roles/head-of-operations"
+jd_url         = "https://viewlineventures.com/roles/head-of-operations"
 one_liner      = "Own how the company runs, so the founder can stop being the operating system."
 sender         = "peter"   # Peter sends this one himself. Do not delegate it.
 template_dir   = "head-of-operations"

@@ -193,6 +193,13 @@ def lint(subject: str, body: str, strict: bool = True) -> list[str]:
         problems.append(f"{len(links)} links in the body. Keep it to {MAX_LINKS}.")
     if PLACEHOLDER.search(joined):
         problems.append("CHANGEME or NEEDS_PETER left in the copy")
+    # Unfinished copy. This nearly went out: six roles carried DRAFT
+    # placeholder templates, and flipping them to live removed the only thing
+    # that was stopping them from sending.
+    for marker in ("DRAFT", "TODO", "TBD", "FIXME", "XXX", "lorem ipsum",
+                   "PLACEHOLDER", "WRITE THIS", "[insert"):
+        if marker.lower() in low:
+            problems.append(f"unfinished copy marker in the text: {marker!r}")
     if TOKEN_RE.search(joined):
         problems.append("an unrendered {{token}} is still in the copy")
     if not subject.strip():
