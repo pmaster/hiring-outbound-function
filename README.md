@@ -157,6 +157,6 @@ Comp does not live in the role files, because those are committed. Put it in
 - `docs/RUNBOOK.md` — what to do each day, and who does it.
 - `docs/COMPLIANCE.md` — where cold email is lawful and where it is not.
 - `docs/OPSEC.md` — what must never share a vector with what.
-- `docs/VENDORS.md` — which tools to buy and what they cost.
+- `docs/VENDORS.md` — which tools to buy, and what to check before buying.
 - `docs/DECISIONS.md` — what is still unanswered and who has to answer it.
 - `docs/ARCHITECTURE.md` — how the code fits together, for whoever maintains it.
