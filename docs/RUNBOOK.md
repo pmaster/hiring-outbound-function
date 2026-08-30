@@ -156,6 +156,8 @@ rate is much higher. Optimise for conversations, not bookings.
 | Replies near zero | The personal note. Read ten of the sent emails in `data/outbox/`. |
 | Bounces above 3 percent | Stop sending. The list source or the verifier is wrong. |
 | Emails in spam | Check SPF, DKIM and DMARC pass on a seed send. Then check the volume ramp. |
+| "domain cap reached" with little sent | Another role used the shared mailboxes today. The cap is per domain, not per role. Raise `sending.mailboxes` only if the mailboxes actually exist. |
+| A send failed | It is retried on the next run, three times, then left as failed. `sqlite3 data/outbound.db "select * from messages where status='failed'"` |
 | Cannot find emails | Add a second enrichment provider to `providers.enrich_waterfall`. |
 | A person asks to stop | `outbound replies mark <address> --kind unsubscribed`. Same day. |
 | A follow up went to someone who replied | `replies sync` did not run, or IMAP is not configured. Fix that first, it is the worst failure here. |

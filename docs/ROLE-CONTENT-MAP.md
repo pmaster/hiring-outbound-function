@@ -18,8 +18,10 @@ between them will differ in front of a candidate.
 | `head-of-operations` | `hiring/roles/coo/` | Chief Operating Officer | **Same seat, two names.** `hiring-pack.md` calls it Head of Operations; the August 2026 job description calls it COO. Sought for 1.5 to 2 years, four failed attempts |
 | `controller` | `hiring/roles/head-of-finance/` | Head of Finance | Posted as Head of Finance because that is what a startup finance lead searches for. Controller is kept as an alternate because it is what an accounting-trained candidate searches for |
 | `engineer` | `hiring/roles/internal-tools-engineer/` | Internal Tools Engineer | Alternates posted: Founding Engineer, Full-stack Engineer (Operations), Automation Engineer |
-| `chief-of-staff` | `hiring/roles/chief-of-staff/` | Chief of Staff | New here. Distinct from `ops-generalist`: senior, different pool, higher band |
-| `quant-team-manager` | `hiring/roles/quant-team-manager/` | Quantitative Team Manager | New here. Widest title portfolio of any seat, by design |
+| `chief-of-staff` | `hiring/roles/chief-of-staff/` | Chief of Staff | Distinct from `ops-generalist`: senior, different pool, higher band |
+| `quant-program-manager` | `hiring/roles/quant-team-manager/` | **Quantitative Team Manager** | The posted title and the outbound title differ on purpose. This repo writes to technical program managers, so the sequence uses that title; the job-board posting does not. See `DECISIONS.md` |
+| `fulfillment-specialist` | `hiring/roles/quantitative-trader/` | Junior/Senior Quantitative Trader, Quality Assurance Specialist, Process Execution Specialist | Same seat. The brain pack cuts twelve live external titles to five |
+| `business-systems-lead` | not in the brain pack | Business Systems Lead | Outbound-only seat so far. No scorecard or sim behind it yet, so it must not go live: a job description without a work simulation does not post |
 | `ops-generalist` | `hiring/roles/operations-manager/` (partly) | Operations Manager | A bucket of about four mid-level seats, placed after the screener. The brain package covers the single senior floor-manager seat |
 | `brand-and-funnel` | Wave 2 | Head of Brand and Funnel | JD added here. The scorecard and sim are Wave 2 in the brain pack |
 

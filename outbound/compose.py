@@ -20,7 +20,7 @@ from typing import Any
 
 from .config import PLACEHOLDER, REPO_ROOT, Role, Settings
 from .errors import ConfigError, OutboundError
-from .util import token_for
+from .util import now, token_for
 
 TEMPLATES_DIR = REPO_ROOT / "templates"
 TOKEN_RE = re.compile(r"\{\{\s*([a-z0-9_]+)\s*\}\}", re.I)
@@ -41,7 +41,11 @@ BANNED_PHRASES = [
     "in today's fast",
     "fast-paced world",
     "it's not just",
+    "not just a",
+    "not just the",
     "this isn't about",
+    "is not about",
+    "isn't about",
     "that said",
     "excited to share",
     "thrilled to",
@@ -122,6 +126,14 @@ def steps_available(role: Role) -> list[int]:
 def build_context(
     settings: Settings, role: Role, candidate: dict[str, Any], to_address: str
 ) -> dict[str, str]:
+    import datetime as _dt
+
+    # A real date beats "shortly". The last email in a sequence only works if
+    # the deadline is checkable.
+    closes_in = int(settings.get("sending.search_closes_days", 10))
+    closing = now() + _dt.timedelta(days=closes_in)
+    closing_date = f"{closing.day} {closing.strftime('%B')}"
+
     unsub = str(settings.get("identity.unsubscribe_url", ""))
     token = token_for(to_address, salt=str(settings.get("identity.sending_domain", "")))
     unsub = unsub.replace("{email_token}", token).replace("{{email_token}}", token)
@@ -146,6 +158,7 @@ def build_context(
         "postal_address": str(settings.get("identity.postal_address", "")),
         "unsubscribe_url": unsub,
         "to_address": to_address,
+        "closing_date": closing_date,
     }
 
 
@@ -180,6 +193,13 @@ def lint(subject: str, body: str, strict: bool = True) -> list[str]:
         problems.append(f"{len(links)} links in the body. Keep it to {MAX_LINKS}.")
     if PLACEHOLDER.search(joined):
         problems.append("CHANGEME or NEEDS_PETER left in the copy")
+    # Unfinished copy. This nearly went out: six roles carried DRAFT
+    # placeholder templates, and flipping them to live removed the only thing
+    # that was stopping them from sending.
+    for marker in ("DRAFT", "TODO", "TBD", "FIXME", "XXX", "lorem ipsum",
+                   "PLACEHOLDER", "WRITE THIS", "[insert"):
+        if marker.lower() in low:
+            problems.append(f"unfinished copy marker in the text: {marker!r}")
     if TOKEN_RE.search(joined):
         problems.append("an unrendered {{token}} is still in the copy")
     if not subject.strip():

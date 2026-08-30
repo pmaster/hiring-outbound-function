@@ -1,0 +1,196 @@
+# Fulfillment Specialist / QIS. DRAFT.
+#
+# Called the "#1 business priority" in the FTE hiring notes: 10 to 15 hires by
+# end of year, 3 immediately. Sourced from docs/SOURCE-BRIEF.md section 1.4.
+#
+# Read this before making it live. Three things make it different from every
+# other role here:
+#
+# 1. It is location locked to specific metros, and the outbound SOP argues
+#    volume, location-locked seats belong on job boards and campus, not cold
+#    email. Cold email may still be worth testing here; it is not obviously
+#    right.
+# 2. One internal role is posted publicly under FIVE titles at fourteen
+#    different comp bands across seven cities. Never email one person about
+#    more than one of them, and quote only the correct city's band.
+# 3. The live gate is the CCAT, and the stated bottleneck is "not enough
+#    qualified applicants passing the cogap test". More applicants at the top
+#    does not fix a gate problem. Check that before pointing volume at it.
+#
+# Title guidance from the source, verbatim: Technical Support Specialist and
+# Quality Assurance Specialist rated good. Gaming Quality Assurance Specialist
+# rated interesting. Quantitative Gaming Specialist rated too niche. Do NOT
+# lead with Implementation Specialist: "no one knows what an implementation
+# specialist is" and its applicants came in too experienced.
+
+[role]
+key            = "fulfillment-specialist"
+title          = "Technical Support Specialist"
+status         = "live"
+seats          = 15
+seniority      = "entry"
+employment     = "contract, hybrid, daily local travel"
+# Comp varies BY CITY. Do not put a single band in the email. Set the band per
+# search, or split this into one role file per metro before going live.
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$80,000 to $105,000 a year"
+comp_in_email  = true
+jd_url         = "https://viewlineventures.com/roles/technical-support-specialist"
+one_liner      = "Run the process exactly, catch what other people miss, and say when something looks wrong."
+sender         = "recruiting"
+template_dir   = "fulfillment-specialist"
+daily_cap      = 25
+target_list_size = 800
+
+[icp]
+titles = [
+  "Quality Assurance Specialist", "Technical Support Specialist",
+  "Operations Associate", "Operations Specialist", "Fulfillment Associate",
+  "Client Onboarding Specialist", "Compliance Analyst", "KYC Analyst",
+  "Lab Technician", "Claims Processor", "Data Verification Specialist",
+]
+title_excludes = [
+  "Manager", "Director", "Head of", "Senior", "Lead", "Principal",
+  "Intern", "Student", "Nurse", "Driver", "Warehouse Associate",
+]
+seniority              = ["entry", "associate"]
+company_headcount      = [10, 20000]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 0
+# Cap experience. Two agency-sourced candidates were rejected as over
+# experienced and too expensive, both with 10 to 15 years.
+max_years_experience   = 5
+max_jobs_last_3_years  = 4
+min_longest_tenure_years = 1
+# Hard filter. These are the metros with live postings. Four more are named as
+# targets with no posting yet: Atlantic City, Trenton, Bridgewater, Allentown.
+metro_priority = [
+  "Philadelphia", "Jersey City", "Cherry Hill", "New Brunswick",
+  "Newark", "Detroit",
+]
+
+keywords_any = [
+  "SOP", "QA", "audit", "detail oriented", "ticketing", "compliance check",
+  "verification", "esports", "chess", "poker",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.18
+kind   = "any_of"
+field  = "title"
+values = ["quality assurance specialist", "technical support specialist", "operations associate", "operations specialist", "fulfillment associate", "client onboarding specialist", "compliance analyst", "kyc analyst", "lab technician", "claims processor", "data verification specialist"]
+
+[[signal]]
+key      = "checks_things_for_a_living"
+weight   = 0.26
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["quality assurance", "\\bQA\\b", "audit", "verif", "\\bKYC\\b", "compliance", "inspect", "review", "accuracy", "error", "discrepan", "reconcil"]
+# The core of the job: run the process exactly and catch what others miss.
+
+[[signal]]
+key      = "buggy_software_tolerance"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["ticketing", "Zendesk", "Salesforce", "internal tool", "legacy system", "multiple systems", "data entry", "CRM", "portal", "troubleshoot"]
+# Stated internally as "main thing we need: using buggy software successfully".
+
+[[signal]]
+key      = "games_and_strategy"
+weight   = 0.16
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["esports", "chess", "poker", "StarCraft", "League of Legends", "Hearthstone", "Dota", "CS:?GO", "competitive gaming", "ranked", "tournament", "speedrun"]
+# "Achievement in competitive video games or strategy games" is a bonus line on
+# four of the live postings, and the candidate archetype cloud names League of
+# Legends, Hearthstone, StarCraft 2, Clash Royale, OSU, Chess, Poker, Marvel
+# Snap, DotA and CS:GO.
+
+[[signal]]
+key      = "stayed_somewhere"
+weight   = 0.10
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 1.5
+soft_min = 0.5
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.06
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 4
+soft_max = 6
+
+[[signal]]
+key      = "over_experienced"
+weight   = -0.20
+kind     = "min_value"
+field    = "years_experience"
+min      = 8.0
+soft_min = 5.0
+# Inverted on purpose: this fires as experience RISES. Two agency candidates
+# with 10 to 15 years were rejected as too expensive for the band.
+
+[[signal]]
+key      = "too_senior_title"
+weight   = -0.15
+kind     = "regex_any"
+field    = "title"
+patterns = ["manager", "director", "head of", "principal", "\\bVP\\b", "senior"]
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "Describe a time you caught a mistake nobody else caught. What was it?",
+  "Which city are you based in, and are you able to travel locally most days?",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "qa-and-support-philadelphia"
+titles    = ["Quality Assurance Specialist", "Technical Support Specialist", "Operations Associate"]
+geo       = ["Greater Philadelphia"]
+headcount = ["11-50", "51-200", "201-500", "501-1000"]
+seniority = ["Entry", "Associate"]
+keywords  = "(QA OR audit OR verification OR compliance OR ticketing) NOT (manager OR director OR senior)"
+target    = 300
+
+[[search]]
+name      = "kyc-and-claims-nj"
+titles    = ["KYC Analyst", "Compliance Analyst", "Claims Processor", "Data Verification Specialist"]
+geo       = ["New Jersey"]
+headcount = ["51-200", "201-500", "501-1000", "1001-5000"]
+seniority = ["Entry", "Associate"]
+keywords  = "(KYC OR verification OR claims OR \"document review\") NOT (manager OR director)"
+target    = 300
+
+[[search]]
+name      = "qa-and-support-detroit"
+titles    = ["Quality Assurance Specialist", "Technical Support Specialist", "Operations Specialist"]
+geo       = ["Detroit"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Entry", "Associate"]
+keywords  = "(QA OR audit OR ticketing OR troubleshoot) NOT (manager OR senior)"
+target    = 200

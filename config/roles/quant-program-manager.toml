@@ -1,0 +1,156 @@
+# Quant Program Manager / Technical Project Manager. DRAFT.
+#
+# The third of the three roles Peter names as most important, alongside
+# Director of Ops and Chief of Staff, which he calls "mostly pretty
+# overlapping/interchangeable".
+#
+# Sourced from docs/SOURCE-BRIEF.md section 1.3. status = "draft" pending
+# Q1 (which roles, in what order) and Q7 (W2 or 1099, and which band).
+
+[role]
+key            = "quant-program-manager"
+title          = "Technical Program Manager"
+status         = "live"
+seats          = 1
+seniority      = "manager"
+employment     = "contractor, full time, remote"
+# Source: $90k-$125k base plus performance bonuses, listed as "Quant
+# Operations / Project Manager (The Technical Bridge)".
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$90,000 to $125,000 a year, plus performance bonus"
+comp_in_email  = true
+jd_url         = "https://viewlineventures.com/roles/technical-program-manager"
+one_liner      = "Sit between the execution floor and engineering, and hold both to an error rate."
+sender         = "peter"
+template_dir   = "quant-program-manager"
+daily_cap      = 15
+target_list_size = 300
+
+[icp]
+# Titles verbatim from the source document.
+titles = [
+  "Trading Operations Manager", "Head of Trading Operations",
+  "Quant Operations Manager", "Execution Operations Lead",
+  "Manager Execution Operations", "Execution Desk Manager",
+  "Manager Digital Fulfillment", "Fulfillment Operations Manager",
+  "Technical Project Manager", "Technical Program Manager",
+  "Operations Program Manager", "Middle Office Manager",
+  "Implementation Manager",
+]
+title_excludes = [
+  "Intern", "Associate", "Analyst", "Coordinator", "Scrum Master",
+  "Construction", "Clinical",
+]
+seniority              = ["manager", "senior", "lead"]
+company_headcount      = [20, 2000]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 4
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+timezone_rule = "at least 50% of hours between 09:00 and 22:00 ET"
+
+keywords_any = [
+  "SLA", "error rate", "execution desk", "middle office", "trade ops",
+  "implementation", "SOP", "requirements", "throughput",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.18
+kind   = "any_of"
+field  = "title"
+values = ["trading operations manager", "head of trading operations", "quant operations manager", "execution operations lead", "execution desk manager", "fulfillment operations manager", "technical project manager", "technical program manager", "operations program manager", "middle office manager", "implementation manager"]
+
+[[signal]]
+key      = "runs_to_an_error_rate"
+weight   = 0.24
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["error rate", "\\bSLA\\b", "quality assurance", "\\bQA\\b", "defect", "accuracy", "audit", "checklist", "\\bSOP\\b", "compliance rate", "reduced .{0,12}\\d+%"]
+# Source: "process obsessed, thinks in checklists, SOPs and error rates",
+# "rigid on SLAs and error rates, flexible on method".
+
+[[signal]]
+key      = "translates_between_floor_and_engineering"
+weight   = 0.20
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["requirements", "product owner", "spec", "engineering", "technical program", "roadmap", "backlog", "stakeholder", "translated"]
+# Source: "product-minded translator between the execution floor and
+# engineering".
+
+[[signal]]
+key      = "adjacent_industry"
+weight   = 0.16
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["prop trading", "market making", "trading desk", "middle office", "back office", "sports betting", "igaming", "sportsbook", "payments", "fintech", "\\bBPO\\b", "brokerage", "exchange"]
+# Source names IT project managers, technical implementation leads, and
+# operations managers from trading firms or betting startups.
+
+[[signal]]
+key      = "data_literate"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["\\bSQL\\b", "query", "dashboard", "Looker", "Tableau", "spreadsheet", "Excel", "analytics", "reporting"]
+
+[[signal]]
+key      = "managed_people"
+weight   = 0.06
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["managed \\d+", "team of \\d+", "led a team", "direct reports"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.06
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "What error rate did you own, and what was it when you arrived versus when you left?",
+  "Describe a time you had to tell someone their numbers were missed. What did you say?",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "trading-and-execution-ops-us"
+titles    = ["Trading Operations Manager", "Execution Operations Lead", "Middle Office Manager", "Quant Operations Manager"]
+geo       = ["United States"]
+headcount = ["11-50", "51-200", "201-500"]
+seniority = ["Manager", "Senior"]
+keywords  = "(\"error rate\" OR SLA OR \"middle office\" OR \"trade ops\") NOT (intern OR analyst)"
+target    = 250
+
+[[search]]
+name      = "tpm-implementation-us"
+titles    = ["Technical Program Manager", "Technical Project Manager", "Implementation Manager", "Fulfillment Operations Manager"]
+geo       = ["United States"]
+headcount = ["51-200", "201-500"]
+keywords  = "(implementation OR requirements OR SOP) AND (operations OR fulfillment OR payments)"
+target    = 250

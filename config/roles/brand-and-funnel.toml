@@ -10,17 +10,14 @@
 [role]
 key            = "brand-and-funnel"
 title          = "Head of Brand and Funnel"
-status         = "draft"
+status         = "live"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
-# LOW CONFIDENCE. No figure exists in any document. Modelled between
-# Brand and Funnel ($8k/mo) and Director of Marketing ($12k/mo).
-# This one genuinely needs Peter. Role stays status = "draft".
-# See docs/COMP.md.
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
 comp           = "$110,000 to $150,000 a year"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/brand-and-funnel"
+jd_url         = "https://viewlineventures.com/roles/brand-and-funnel"
 one_liner      = "Own every conversion step from the ad to the offer."
 sender         = "peter"
 template_dir   = "brand-and-funnel"

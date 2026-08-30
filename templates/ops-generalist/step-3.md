@@ -2,7 +2,7 @@ Subject: Closing the operations search
 
 {{first_name}},
 
-I am closing this search shortly. No is a fine answer and costs you nothing.
+I am closing this search on {{closing_date}}. No is a fine answer and costs you nothing.
 
 {{screener_url}}
 

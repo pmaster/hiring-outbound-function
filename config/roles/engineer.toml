@@ -14,11 +14,10 @@ status         = "live"
 seats          = 2
 seniority      = "senior"
 employment     = "contractor, full time, remote"
-# Stated verbatim in the Internal Tools Engineer scorecard v1.0,
-# 2026-08-24. See docs/COMP.md.
-comp           = "$5,000 to $10,000 a month"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$120,000 to $160,000 a year"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/engineer"
+jd_url         = "https://viewlineventures.com/roles/engineer"
 one_liner      = "Own the internal tooling that fifty people work in every day."
 sender         = "peter"
 template_dir   = "engineer"

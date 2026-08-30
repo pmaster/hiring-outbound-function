@@ -21,7 +21,7 @@ from . import providers as provider_registry
 from .compliance import assert_sendable, geo_allowed, message_problems
 from .compose import render, steps_available
 from .config import Role, Settings
-from .db import Database
+from .db import TERMINAL_STAGES, Database
 from .errors import ComplianceError, OutboundError, SafetyStop
 from .profiles import normalize
 from .score import route, score_profile
@@ -427,10 +427,21 @@ def can_send_now(settings: Settings, at: _dt.datetime | None = None) -> tuple[bo
     return True, ""
 
 
-def daily_cap(settings: Settings, role: Role) -> int:
+def domain_cap(settings: Settings) -> int:
+    """How many emails may leave the sending domain today, across all roles.
+
+    The mailboxes are shared. Three live roles at 18 a day each would push 54
+    emails through two mailboxes, which is 27 per mailbox and well past what a
+    warmed mailbox should carry. The domain cap binds first.
+    """
     per_box = int(settings.get("sending.per_mailbox_per_day", 18))
     boxes = max(1, int(settings.get("sending.mailboxes", 1)))
-    return min(role.daily_cap, per_box * boxes)
+    return per_box * boxes
+
+
+def daily_cap(settings: Settings, role: Role) -> int:
+    """The per role cap. The domain cap in `domain_cap` binds on top of it."""
+    return min(role.daily_cap, domain_cap(settings))
 
 
 def queue_next(
@@ -541,14 +552,29 @@ def send_due(
     provider = provider_registry.build("send", name, settings)
 
     day = sending_day(settings)
-    already = db.sends_today(role.key, day)
-    cap = daily_cap(settings, role)
-    room = max(0, cap - already)
+    requeued = db.requeue_failed(role.key, max_attempts=int(settings.get("limits.send_attempts", 3)))
+    if requeued:
+        result.notes.append(f"put {requeued} previously failed message(s) back in the queue")
+
+    already_role = db.sends_today(role.key, day)
+    already_domain = db.sends_today_all_roles(day)
+    role_room = max(0, daily_cap(settings, role) - already_role)
+    domain_room = max(0, domain_cap(settings) - already_domain)
+    room = min(role_room, domain_room)
     if limit is not None:
         room = min(room, limit)
     room = min(room, int(settings.get("limits.max_sends_per_run", 60)))
     if room <= 0:
-        result.notes.append(f"daily cap reached: {already}/{cap} already sent today")
+        if domain_room <= 0:
+            result.notes.append(
+                f"domain cap reached: {already_domain}/{domain_cap(settings)} sent from "
+                f"the sending domain today, across all roles"
+            )
+        else:
+            result.notes.append(
+                f"role cap reached: {already_role}/{daily_cap(settings, role)} sent for "
+                f"{role.key} today"
+            )
         return result
 
     due = db.query(
@@ -557,9 +583,14 @@ def send_due(
         (role.key, iso(), room),
     )
     identity = settings.section("identity")
+    # sending.stop_on names the stages that halt a sequence. Anything terminal
+    # halts it too, whether or not it is listed.
+    stop_stages = {
+        str(x) for x in (settings.get("sending.stop_on", []) or [])
+    } | TERMINAL_STAGES | {"confirmed", "screened"}
     for message in due:
         candidate = db.candidate(int(message["candidate_id"]))
-        if candidate and candidate["stage"] in ("unsubscribed", "bounced", "replied", "booked", "stopped", "rejected"):
+        if candidate and candidate["stage"] in stop_stages:
             db.execute("UPDATE messages SET status = 'skipped' WHERE id = ?", (message["id"],))
             result.bump("skipped_stage")
             continue

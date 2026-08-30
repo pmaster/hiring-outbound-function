@@ -1,14 +1,14 @@
-Subject: Re: {{role_title}} at a fifty person trading firm
+Subject: Re: Chief of Staff at a fifty person trading firm
 
 {{first_name}},
 
-The fair objection to my last note is that "whatever has no owner" is not a job description, so here are four real ones, all still open six months after somebody wrote them down.
+Two numbers, since they are the job.
 
-Booked sessions where roughly half the people never show up. A document step where four in five submissions come back needing revision. Teams with no defensible view of how long their own work should take, because no time study has ever been run. A support function that does not exist and needs a playbook before it can be staffed.
+Interview no-show on our recruiting funnel is 60 percent. Document revision is 80 percent. Both have been that way for months because nobody owns either one. That is the shape of most of what you would pick up.
 
-You would pick the order. That is most of the interview.
+{{comp}}, {{employment}}. At least half your hours need to overlap 09:00 to 22:00 Eastern. Details: {{jd_url}}
 
-{{jd_url}} — {{comp}}. {{screener_minutes}} minutes: {{screener_url}}
+{{screener_url}}
 
 {{sender_name}}
 

@@ -18,13 +18,13 @@ unsubscribe_url = "https://hiring.example/unsubscribe?e={email_token}"
 per_mailbox_per_day = 18
 mailboxes           = 2
 step_gap_days       = [0, 4, 8]
+search_closes_days  = 10
 skip_weekdays       = [5, 6]
 send_window         = ["08:30", "16:30"]
 timezone            = "America/New_York"
 stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
 
 [warmup]
-min_domain_age_days = 14
 require_warmup_done = false
 
 [booking]
@@ -85,3 +85,19 @@ jd_url = "https://hiring.example/roles/controller"
 [role_overrides.brand-and-funnel]
 comp   = "$8,000 to $12,000 a month"
 jd_url = "https://hiring.example/roles/brand-and-funnel"
+
+[role_overrides.chief-of-staff]
+comp   = "$105,000 to $145,000 plus equity"
+jd_url = "https://hiring.example/roles/chief-of-staff"
+
+[role_overrides.quant-program-manager]
+comp   = "$90,000 to $125,000 plus bonus"
+jd_url = "https://hiring.example/roles/technical-program-manager"
+
+[role_overrides.business-systems-lead]
+comp   = "NOT SET IN ANY SOURCE DOCUMENT"
+jd_url = "https://hiring.example/roles/business-systems-lead"
+
+[role_overrides.fulfillment-specialist]
+comp   = "VARIES BY CITY - see docs/SOURCE-BRIEF.md 1.4"
+jd_url = "https://hiring.example/roles/technical-support-specialist"

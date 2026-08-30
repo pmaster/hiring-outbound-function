@@ -35,10 +35,20 @@ DEMO_SETTINGS = ROOT / "sample" / "settings.demo.toml"
 # Only unambiguous tells belong here. Ordinary words that happen to appear in
 # gambling ("bonus", "trading") are not tells, and firing on them would make
 # the check useless.
+# Sources: docs/SOURCE-BRIEF.md section 4 items 1, 7 and 17, and
+# projects/sunbird/employee-pitch.md Version 1.
 T1_BANNED = [
+    # The domain itself.
     "casino", "sportsbook", "bookmaker", "gambling", "betting", "wager",
-    "advantage play", "funded account", "promotional offer",
-    "under our direction",
+    "sweepstake", "games of chance", "lottery", "advantage play",
+    # The platforms and processors. Naming them invites the pattern matching
+    # that already caused mass account bans.
+    "draftkings", "fanduel", "betmgm", "caesars", "paypal", "varo", "sofi",
+    # The model.
+    "funded account", "promotional offer", "under our direction",
+    "device commingling", "geolocation", "account separation",
+    # Internal names that must not reach a candidate.
+    "cornerstone gigs", "cornerstonegigs", "opsengine", "sunrun labs",
 ]
 
 
@@ -174,6 +184,15 @@ class TestDatabase(unittest.TestCase):
         self.assertFalse(created_b)
         self.assertEqual(a, b)
 
+    def test_two_namesakes_without_a_profile_url_stay_separate(self):
+        a, _ = self.db.upsert_candidate(
+            "r", {"full_name": "Chris Taylor", "company": "Acme", "location": "Austin, TX"}
+        )
+        b, _ = self.db.upsert_candidate(
+            "r", {"full_name": "Chris Taylor", "company": "Beta", "location": "Denver, CO"}
+        )
+        self.assertNotEqual(a, b)
+
     def test_same_person_two_roles_is_two_rows(self):
         a, _ = self.db.upsert_candidate("r1", {"linkedin_url": "linkedin.com/in/jane", "full_name": "Jane"})
         b, _ = self.db.upsert_candidate("r2", {"linkedin_url": "linkedin.com/in/jane", "full_name": "Jane"})
@@ -212,11 +231,48 @@ class TestCompliance(unittest.TestCase):
         self.assertIn("no_unsubscribe", codes)
         self.assertIn("no_postal", codes)
 
-    def test_preflight_blocks_a_live_brand_domain(self):
-        raw = json.loads(json.dumps(self.settings.raw))
-        raw["identity"]["from_email"] = "jobs@viewlineventures.com"
-        problems = preflight(Settings(raw=raw), None)
-        self.assertIn("forbidden_domain", {p.code for p in problems})
+    def test_doctor_catches_a_broken_template(self):
+        role = self.roles["engineer"]
+        original = role.template_dir
+        role.template_dir = "does-not-exist"
+        try:
+            codes = {p.code for p in preflight(self.settings, role)}
+        finally:
+            role.template_dir = original
+        self.assertIn("no_templates", codes)
+
+    def test_doctor_passes_every_live_role_as_shipped(self):
+        for role in self.roles.values():
+            if not role.is_live:
+                continue
+            fatal = [p for p in preflight(self.settings, role) if p.fatal]
+            self.assertEqual(fatal, [], f"{role.key}: {[str(p) for p in fatal]}")
+
+    def test_preflight_blocks_the_client_and_internal_domains(self):
+        """Both source doctrines agree these must never send FTE outreach."""
+        for domain in ("cornerstonegigs.com", "sunrunlabs.com", "gmail.com"):
+            raw = json.loads(json.dumps(self.settings.raw))
+            raw["identity"]["from_email"] = f"jobs@{domain}"
+            problems = preflight(Settings(raw=raw), None)
+            fatal = {p.code for p in problems if p.fatal}
+            self.assertIn("forbidden_domain", fatal, domain)
+
+    def test_a_contested_domain_warns_until_the_decision_is_recorded(self):
+        """viewlineventures.com is the designated FTE domain in one doc and a
+        thing to protect in another. That is a decision, not a rule, so it
+        warns until someone records having made it."""
+        for domain in ("viewlineventures.com", "sunbirdsystems.com"):
+            raw = json.loads(json.dumps(self.settings.raw))
+            raw["identity"]["from_email"] = f"jobs@{domain}"
+            raw["identity"].pop("sending_domain_decided_on", None)
+            problems = preflight(Settings(raw=raw), None)
+            self.assertIn("contested_domain", {p.code for p in problems}, domain)
+            self.assertNotIn(
+                "forbidden_domain", {p.code for p in problems if p.fatal}, domain
+            )
+            raw["identity"]["sending_domain_decided_on"] = "2026-08-30"
+            after = preflight(Settings(raw=raw), None)
+            self.assertNotIn("contested_domain", {p.code for p in after}, domain)
 
     def test_preflight_blocks_unset_comp_when_comp_goes_in_the_email(self):
         _settings, roles = load_all(DEMO_SETTINGS)
@@ -258,6 +314,15 @@ class TestCompose(unittest.TestCase):
         candidate = dict(self.candidate, personal_note="")
         with self.assertRaises(OutboundError):
             render(self.settings, self.roles["head-of-operations"], candidate, "d@x.com", 1)
+
+    def test_linter_catches_unfinished_copy(self):
+        for marker in ("DRAFT. Not live yet.", "TODO: write this",
+                       "TBD", "lorem ipsum dolor", "[insert name]"):
+            problems = lint("A subject", f"Some text. {marker} More text.")
+            self.assertTrue(
+                any("unfinished copy marker" in p for p in problems),
+                f"{marker!r} was not caught",
+            )
 
     def test_linter_catches_em_dash_and_ai_tells(self):
         problems = lint("Hi", "I hope this email finds you well — really.")
@@ -356,13 +421,70 @@ class TestPipeline(unittest.TestCase):
         second = pipeline.send_due(self.db, self.settings, self.role, live=False)
         self.assertEqual(second.counts.get("sent", 0), 0)
 
-    def test_daily_cap_is_enforced(self):
+    def test_role_cap_is_enforced(self):
         day = pipeline.sending_day(self.settings)
         cap = pipeline.daily_cap(self.settings, self.role)
         self.db.record_send(self.role.key, day, n=cap)
         result = pipeline.send_due(self.db, self.settings, self.role, live=False)
         self.assertEqual(result.counts.get("sent", 0), 0)
-        self.assertTrue(any("daily cap" in n for n in result.notes))
+        self.assertTrue(any("role cap" in n for n in result.notes), result.notes)
+
+    def test_another_role_eats_the_shared_domain_cap(self):
+        """The mailboxes are shared, so one role's sends limit another's."""
+        day = pipeline.sending_day(self.settings)
+        self.db.record_send("some-other-role", day, n=pipeline.domain_cap(self.settings))
+        result = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        self.assertEqual(result.counts.get("sent", 0), 0)
+        self.assertTrue(any("domain cap" in n for n in result.notes), result.notes)
+
+    def test_a_failed_send_is_retried_then_given_up_on(self):
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        queued = self.db.query(
+            "SELECT * FROM messages WHERE role_key = ? AND status = 'queued'", (self.role.key,)
+        )
+        self.assertTrue(queued)
+        message_id = int(queued[0]["id"])
+        for expected in (1, 2, 3):
+            self.db.mark_failed(message_id, "provider down")
+            row = self.db.one("SELECT * FROM messages WHERE id = ?", (message_id,))
+            self.assertEqual(row["attempts"], expected)
+            self.assertEqual(row["status"], "failed")
+            requeued = self.db.requeue_failed(self.role.key, max_attempts=3)
+            row = self.db.one("SELECT * FROM messages WHERE id = ?", (message_id,))
+            if expected < 3:
+                self.assertEqual(row["status"], "queued", "should still be retried")
+            else:
+                self.assertEqual(row["status"], "failed", "should be given up on")
+                self.assertEqual(requeued, 0)
+
+    def test_schema_migration_adds_the_attempts_column(self):
+        """A database made by version 1 must gain the column, not break."""
+        import sqlite3
+
+        legacy = Path(self.dir.name) / "legacy.db"
+        conn = sqlite3.connect(legacy)
+        conn.executescript(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, candidate_id INTEGER, "
+            "role_key TEXT, step INTEGER, to_address TEXT, subject TEXT, body TEXT, "
+            "rendered_at TEXT, send_after TEXT, sent_at TEXT, provider TEXT, "
+            "provider_id TEXT, status TEXT, error TEXT);"
+        )
+        conn.execute(
+            "INSERT INTO messages (role_key, step, to_address, subject, body, status) "
+            "VALUES ('r', 1, 'a@b.com', 's', 'b', 'failed')"
+        )
+        conn.commit()
+        conn.close()
+        upgraded = open_db(legacy)
+        columns = {row["name"] for row in upgraded.query("PRAGMA table_info(messages)")}
+        self.assertIn("attempts", columns)
+        self.assertEqual(upgraded.requeue_failed("r"), 1)
+        upgraded.close()
 
     def test_live_send_refuses_on_placeholder_settings(self):
         raw = json.loads(json.dumps(self.settings.raw))
@@ -372,8 +494,32 @@ class TestPipeline(unittest.TestCase):
             pipeline.send_due(self.db, broken, self.role, live=True, attest_warmup=True)
 
     def test_live_send_refuses_a_draft_role(self):
+        import copy
+
+        draft = copy.deepcopy(self.roles["controller"])
+        draft.status = "draft"
         with self.assertRaises(ComplianceError):
-            pipeline.send_due(self.db, self.settings, self.roles["controller"], live=True, attest_warmup=True)
+            pipeline.send_due(
+                self.db, self.settings, draft, live=True,
+                attest_warmup=True, ignore_window=True,
+            )
+
+    def test_stop_on_halts_the_sequence(self):
+        """sending.stop_on is real config, not decoration."""
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        target = self.db.query(
+            "SELECT * FROM messages WHERE role_key = ? AND status = 'queued'", (self.role.key,)
+        )[0]
+        self.db.set_stage(int(target["candidate_id"]), "replied")
+        result = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        self.assertGreaterEqual(result.counts.get("skipped_stage", 0), 1)
+        after = self.db.one("SELECT status FROM messages WHERE id = ?", (target["id"],))
+        self.assertEqual(after["status"], "skipped")
 
     def test_suppressed_address_is_never_written_to(self):
         self._seed()
@@ -466,7 +612,7 @@ class TestPages(unittest.TestCase):
         self.assertIn("&lt;script&gt;", body)
 
     def test_build_all_writes_every_live_role(self):
-        from outbound.pages import build_all
+        from outbound.pages import CONTENT_DIR, build_all
 
         out = Path(self.dir.name)
         written = build_all(self.settings, self.roles, out)
@@ -474,10 +620,21 @@ class TestPages(unittest.TestCase):
         self.assertIn("index.html", names)
         self.assertIn("unsubscribe.html", names)
         for role in self.roles.values():
-            if role.is_live:
+            has_content = (CONTENT_DIR / f"{role.key}.md").exists()
+            if role.is_live and has_content:
                 self.assertIn(f"{role.key}.html", names)
-            else:
+            elif not role.is_live:
                 self.assertNotIn(f"{role.key}.html", names)
+
+    def test_every_live_role_has_a_job_description(self):
+        """A live role with no page has an email linking to a 404."""
+        from outbound.pages import CONTENT_DIR
+
+        missing = [
+            r.key for r in self.roles.values()
+            if r.is_live and not (CONTENT_DIR / f"{r.key}.md").exists()
+        ]
+        self.assertEqual(missing, [], f"live roles with no content/jd page: {missing}")
 
     def test_pages_carry_no_unrendered_tokens_and_no_em_dash(self):
         from outbound.pages import build_all

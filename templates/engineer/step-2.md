@@ -2,11 +2,9 @@ Subject: Re: Internal tooling seat, fifty person firm
 
 {{first_name}},
 
-Two things people ask after my first note.
+About twenty live initiatives sit on this seat and fifteen of them have nobody on them at all. One engineer currently holds all of it. Your first job would be to make that number two.
 
-What you would own: about twenty live initiatives sit on this seat and fifteen of them have nobody on them. You would halve a single point of failure, not join a backlog.
-
-How we hire: a real bug from our codebase, timed, then a system design conversation. No whiteboard puzzles.
+We hire on a real bug from our codebase, timed, then a system design conversation. No whiteboard puzzles.
 
 {{comp}}, {{employment}}. Details: {{jd_url}}
 

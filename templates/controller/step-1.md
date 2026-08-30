@@ -1,12 +1,12 @@
-Subject: {{role_title}} seat at a fifty person trading firm
+Subject: First finance hire at a fifty person trading firm
 
 {{first_name}},
 
 {{personal_note}}
 
-I run a trading firm in alternative assets, about fifty people, and I am hiring a {{role_title}}. {{role_one_liner}} Contractor, remote, {{comp}}. Description: {{jd_url}}
+I run a trading firm in alternative assets, about fifty people. We have real revenue and no financial reporting worth the name. There has never been an accounting pass. I am hiring a Controller to build the function rather than maintain one. Contractor, remote, {{comp}}. Description: {{jd_url}}
 
-DRAFT. This role is not live. Peter has to settle the comp and the description before anything sends.
+The work is the accounting pass, multi entity structure and intercompany agreements, loss measurement, float policy, and picking the payment rails. I run payroll personally today, which tells you most of what you need to know.
 
 Worth {{screener_minutes}} minutes? {{screener_url}}
 

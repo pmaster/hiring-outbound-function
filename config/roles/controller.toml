@@ -11,15 +11,14 @@
 [role]
 key            = "controller"
 title          = "Controller"
-status         = "draft"
+status         = "live"
 seats          = 1
 seniority      = "senior"
 employment     = "contractor, full time, remote"
-# Derived: model floor $10k/month = $120k; a live candidate proposed
-# $12.5k/month = $150k on 2026-08-19. See docs/COMP.md.
-comp           = "$130,000 to $180,000 a year"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$140,000 to $180,000 a year"
 comp_in_email  = true
-jd_url         = "https://CHANGEME.example/roles/controller"
+jd_url         = "https://viewlineventures.com/roles/controller"
 one_liner      = "Build the finance function. There has never been an accounting pass."
 sender         = "peter"
 template_dir   = "controller"

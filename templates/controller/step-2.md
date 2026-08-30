@@ -1,8 +1,10 @@
-Subject: Re: {{role_title}} seat at a fifty person trading firm
+Subject: Re: First finance hire at a fifty person trading firm
 
 {{first_name}},
 
-DRAFT. Write the objection handler here once the role is live. One fact that answers the obvious question about the seat.
+The honest version of why this seat is open.
+
+Every economic number in the business is stated before losses and unhaircut, because losses have never been measured. The one unsolved operational bottleneck is a money movement question that is waiting on a decision, not a build. Both are yours on day one.
 
 {{comp}}, {{employment}}. Details: {{jd_url}}
 

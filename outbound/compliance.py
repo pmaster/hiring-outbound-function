@@ -15,11 +15,16 @@ from .config import PLACEHOLDER, Role, Settings
 from .errors import ComplianceError
 from .util import email_domain, norm_email
 
-# Never send from these. A complaint cluster on a live brand domain
-# blocklists it and kills normal business email.
+# Hard block. Both source doctrines agree these must never send FTE outreach.
+#
+# cornerstonegigs.com is reserved exclusively for client and gig worker
+# engagement, and the Cornerstone name carries public reviews bad enough to
+# fail a bank compliance check. sunrunlabs.com is the internal corporate
+# identity holding the shared Workspace login. Free mail providers cannot
+# carry SPF, DKIM and DMARC for a brand, and read as a scam from a stranger.
 FORBIDDEN_SENDING_DOMAINS = {
-    "viewlineventures.com",
-    "sunbirdsystems.com",
+    "cornerstonegigs.com",
+    "sunrunlabs.com",
     "gmail.com",
     "googlemail.com",
     "outlook.com",
@@ -28,6 +33,26 @@ FORBIDDEN_SENDING_DOMAINS = {
     "icloud.com",
     "proton.me",
     "protonmail.com",
+}
+
+# Not blocked, but not free either. Peter's own scoping doc designates
+# viewlineventures.com as the FTE hiring domain, and it already sends job
+# notifications. The outbound SOP argues the opposite: a complaint cluster
+# blocklists the domain and takes normal business email with it. Both
+# arguments are real, so this is a decision, not a rule. See docs/DECISIONS.md
+# Q4, and docs/SOURCE-BRIEF.md section 3.1.
+CONTESTED_SENDING_DOMAINS = {
+    "viewlineventures.com": (
+        "the designated FTE hiring domain, and it already sends job "
+        "notifications. It also carries normal business email, which a "
+        "complaint cluster would take down with it. Lock this decision for "
+        "12 months before warming anything."
+    ),
+    "sunbirdsystems.com": (
+        "the careers site brand used at the Rutgers career fair and for "
+        "Handshake. Burning it costs the campus channel, which produced real "
+        "hires."
+    ),
 }
 
 
@@ -95,10 +120,22 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
         problems.append(
             Problem(
                 "forbidden_domain",
-                f"{domain} must never send outbound. Use a separate recruiting "
+                f"{domain} must never send FTE outreach. Use a recruiting "
                 f"domain on separate hosting. See docs/OPSEC.md.",
             )
         )
+    elif domain in CONTESTED_SENDING_DOMAINS:
+        decided = str(settings.get("identity.sending_domain_decided_on", "")).strip()
+        if not decided:
+            problems.append(
+                Problem(
+                    "contested_domain",
+                    f"{domain} is {CONTESTED_SENDING_DOMAINS[domain]} "
+                    f"Sending from it is a decision someone has to make on "
+                    f"purpose. Record it with identity.sending_domain_decided_on.",
+                    fatal=False,
+                )
+            )
     if domain and not re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", domain):
         problems.append(Problem("bad_domain", f"sending domain {domain!r} looks wrong"))
 
@@ -123,6 +160,7 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
         )
 
     if role is not None:
+        problems.extend(_template_problems(settings, role))
         if not role.is_live:
             problems.append(
                 Problem("role_not_live", f"role {role.key} has status {role.status!r}")
@@ -136,6 +174,47 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
                     f"role {role.key} puts comp in the email but comp is unset. "
                     f"A senior operator will not answer a blind approach.",
                 )
+            )
+    return problems
+
+
+def _template_problems(settings: Settings, role: Role) -> list[Problem]:
+    """Catch a missing or broken template now, not at 08:40 on a cron."""
+    from .compose import render, steps_available
+
+    problems: list[Problem] = []
+    steps = steps_available(role)
+    if not steps:
+        return [
+            Problem(
+                "no_templates",
+                f"no templates in templates/{role.template_dir}/. Expected step-1.md.",
+            )
+        ]
+    if 1 not in steps:
+        problems.append(
+            Problem("no_step_one", f"templates/{role.template_dir}/step-1.md is missing")
+        )
+    sample = {
+        "id": 0,
+        "first_name": "Sample",
+        "last_name": "Person",
+        "full_name": "Sample Person",
+        "title": "Head of Operations",
+        "company": "Example",
+        "personal_note": "A specific detail from their profile.",
+    }
+    for step in steps:
+        try:
+            rendered = render(settings, role, sample, "sample@example.com", step, strict=True)
+        except Exception as exc:
+            problems.append(
+                Problem("template_broken", f"{role.key} step {step} will not render: {exc}")
+            )
+            continue
+        for problem in message_problems(settings, rendered.body):
+            problems.append(
+                Problem(problem.code, f"{role.key} step {step}: {problem.message}")
             )
     return problems
 

@@ -80,7 +80,7 @@ If the scan misses something, or a reply arrives by another route:
 A sequencer does its own reply detection. Run `replies sync` anyway, because
 this database is what the report and the stage logic read.
 
-## The three rules the code enforces
+## The four rules the code enforces
 
 1. **No detail, no email.** You cannot approve a candidate without writing the
    one specific thing from their profile that goes in line one. Step one of
@@ -88,7 +88,10 @@ this database is what the report and the stage logic read.
    campaign, so the code will not let you skip it.
 2. **A person approves every send.** Scoring only sorts the queue. Nothing
    reaches the send queue without `outbound review`.
-3. **Nothing sends until `doctor` passes.** Placeholder settings, a live brand
+3. **The daily cap is per sending domain, not per role.** The mailboxes are
+   shared, so one role's sends limit another's. Three live roles cannot each
+   send eighteen a day out of two mailboxes.
+4. **Nothing sends until `doctor` passes.** Placeholder settings, a live brand
    domain, an unset comp number or a draft role all stop a live send.
 
 ## Layout
@@ -108,13 +111,20 @@ this database is what the report and the stage logic read.
 
 ## Roles shipped
 
-| Key | Seats | Status |
-|---|---|---|
-| `head-of-operations` | 1 | live |
-| `engineer` | 2 | live |
-| `ops-generalist` | 4 | live |
-| `controller` | 1 | draft |
-| `brand-and-funnel` | 1 | draft |
+Nine seats, built from the source documents. `docs/SOURCE-BRIEF.md` traces
+every criterion to the file it came from.
+
+| Key | Seats | Status | Why |
+|---|---|---|---|
+| `head-of-operations` | 1 | live | Sought 1.5 to 2 years, four failed attempts. Also covers Director of Ops and VP Ops, because which title is hired is undecided. |
+| `engineer` | 2 | live | About twenty initiatives on the seat and one person in it. |
+| `ops-generalist` | 4 | live | Four departments with no head. |
+| `chief-of-staff` | 1 | draft | One of the three Peter calls most important. Comp conflicts with itself in the source. |
+| `quant-program-manager` | 1 | draft | The third of those three. |
+| `fulfillment-specialist` | 15 | draft | Called the number one business priority. Metro locked, and the live gate is a test people are failing. Read the file before making it live. |
+| `business-systems-lead` | 1 | draft | Top five priority. No comp in any source document. |
+| `controller` | 1 | draft | The heaviest vacancy on the issues register. |
+| `brand-and-funnel` | 1 | draft | The largest block of Peter's time a single hire removes. |
 
 Draft roles load and score but refuse to send. Set `status = "live"` in the
 role file once the comp and the job description are settled.
@@ -154,5 +164,7 @@ Comp does not live in the role files, because those are committed. Put it in
 - `docs/RUNBOOK.md` — what to do each day, and who does it.
 - `docs/COMPLIANCE.md` — where cold email is lawful and where it is not.
 - `docs/OPSEC.md` — what must never share a vector with what.
-- `docs/VENDORS.md` — which tools to buy and what they cost.
+- `docs/VENDORS.md` — which tools to buy, and what to check before buying.
 - `docs/DECISIONS.md` — what is still unanswered and who has to answer it.
+- `docs/ROLE-INTAKE.md` — what is needed to define a seat, and where each answer goes.
+- `docs/ARCHITECTURE.md` — how the code fits together, for whoever maintains it.

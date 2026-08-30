@@ -1,0 +1,140 @@
+# Business Systems Lead. DRAFT.
+#
+# Named a top-five priority in the FTE hiring notes. The automations seat: it
+# owns GoHighLevel, Airtable, Make and the workflow glue that the operation
+# currently runs on.
+#
+# Sourced from docs/SOURCE-BRIEF.md section 1.6. Two live problems recorded
+# there: the comp is blank in every tab of the posting sheet, and no working
+# assessment exists (Peter takes these interviews himself as discovery).
+# Geography is genuinely undecided: agencies were engaged across LatAm, the US
+# and Asia, and "do we go onshore or offshore" is unanswered (brief Q8).
+# The geo below is US only, because that is what this machine may lawfully
+# cold email. Offshore candidates go through agencies and job boards.
+
+[role]
+key            = "business-systems-lead"
+title          = "Business Systems Lead"
+status         = "live"
+seats          = 1
+seniority      = "senior"
+employment     = "contractor, full time, remote"
+# Comp is an assumption. Reasoning and confidence: docs/COMP.md
+comp           = "$95,000 to $130,000 a year"
+comp_in_email  = true
+jd_url         = "https://viewlineventures.com/roles/business-systems-lead"
+one_liner      = "Own the automations and the CRM that the whole operation runs through."
+sender         = "recruiting"
+template_dir   = "business-systems-lead"
+daily_cap      = 15
+target_list_size = 300
+
+[icp]
+titles = [
+  "Business Systems Lead", "Business Systems Analyst", "RevOps Engineer",
+  "Revenue Operations Manager", "Automation Engineer", "Solutions Architect",
+  "CRM Administrator", "CRM Manager", "GoHighLevel Developer",
+  "Airtable Consultant", "No-Code Developer", "Systems Operations Manager",
+  "Marketing Operations Manager",
+]
+title_excludes = [
+  "Intern", "Junior", "Salesforce Administrator I", "Data Entry",
+  "Help Desk", "Field Service",
+]
+seniority              = ["senior", "lead", "manager"]
+company_headcount      = [5, 500]
+geo                    = ["United States"]
+geo_exclude            = ["Canada", "European Union", "Poland"]
+min_years_experience   = 4
+min_months_in_role     = 12
+max_jobs_last_3_years  = 3
+min_longest_tenure_years = 2
+
+keywords_any = [
+  "GoHighLevel", "GHL", "Airtable", "Make.com", "Integromat", "Zapier",
+  "workflow automation", "CRM architecture", "n8n",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.16
+kind   = "any_of"
+field  = "title"
+values = ["business systems lead", "business systems analyst", "revops engineer", "revenue operations manager", "automation engineer", "solutions architect", "crm administrator", "crm manager", "gohighlevel developer", "airtable consultant", "no-code developer", "systems operations manager", "marketing operations manager"]
+
+[[signal]]
+key      = "the_actual_stack"
+weight   = 0.30
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["GoHighLevel", "\\bGHL\\b", "Airtable", "Make\\.com", "Integromat", "Zapier", "\\bn8n\\b", "HubSpot", "Salesforce", "Retool", "Typeform"]
+# The stack is named exactly in the source JD: Airtable, Make (Integromat),
+# GoHighLevel or similar. This is the highest weighted signal for this seat
+# because the stack is specific and the match is checkable from a profile.
+
+[[signal]]
+key      = "built_workflows_end_to_end"
+weight   = 0.22
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["workflow", "automation", "integration", "API", "webhook", "designed and deployed", "built the", "from scratch", "migrated"]
+# Source: "proven experience designing and deploying custom CRM systems and
+# workflow automations".
+
+[[signal]]
+key      = "high_volume_operations_context"
+weight   = 0.16
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["high volume", "at scale", "onboarding", "operations", "back office", "throughput", "\\d{2,}k contacts", "pipeline"]
+# Source: "can map and streamline complex high-volume workflows".
+
+[[signal]]
+key      = "startup_context"
+weight   = 0.10
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["startup", "seed", "series a", "series b", "early stage", "fast.?moving", "agency"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.06
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "Cold email is not lawful or not advisable in this country."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "Which of GoHighLevel, Airtable, Make or Zapier have you built production workflows in? Name the biggest one.",
+  "Describe a manual process you automated. How many hours a week did it take before, and after?",
+  "What is your target compensation?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "ghl-and-airtable-builders-us"
+titles    = ["Business Systems Analyst", "Automation Engineer", "RevOps Engineer", "CRM Manager"]
+geo       = ["United States"]
+headcount = ["2-10", "11-50", "51-200"]
+seniority = ["Senior", "Lead", "Manager"]
+keywords  = "(GoHighLevel OR Airtable OR \"Make.com\" OR Integromat OR Zapier) AND (workflow OR automation OR CRM)"
+target    = 300
