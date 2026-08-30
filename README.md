@@ -80,7 +80,7 @@ If the scan misses something, or a reply arrives by another route:
 A sequencer does its own reply detection. Run `replies sync` anyway, because
 this database is what the report and the stage logic read.
 
-## The three rules the code enforces
+## The four rules the code enforces
 
 1. **No detail, no email.** You cannot approve a candidate without writing the
    one specific thing from their profile that goes in line one. Step one of
@@ -88,7 +88,10 @@ this database is what the report and the stage logic read.
    campaign, so the code will not let you skip it.
 2. **A person approves every send.** Scoring only sorts the queue. Nothing
    reaches the send queue without `outbound review`.
-3. **Nothing sends until `doctor` passes.** Placeholder settings, a live brand
+3. **The daily cap is per sending domain, not per role.** The mailboxes are
+   shared, so one role's sends limit another's. Three live roles cannot each
+   send eighteen a day out of two mailboxes.
+4. **Nothing sends until `doctor` passes.** Placeholder settings, a live brand
    domain, an unset comp number or a draft role all stop a live send.
 
 ## Layout

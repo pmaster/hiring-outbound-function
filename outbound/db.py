@@ -13,7 +13,7 @@ from typing import Any, Iterable, Sequence
 
 from .util import iso, norm_email, norm_linkedin, now
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # The funnel, in order. `stage_index` uses this, so keep it ordered.
 STAGES = [
@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS messages (
     provider_id   TEXT,
     status        TEXT NOT NULL DEFAULT 'queued',
     error         TEXT,
+    attempts      INTEGER NOT NULL DEFAULT 0,
     UNIQUE (candidate_id, step)
 );
 CREATE INDEX IF NOT EXISTS idx_messages_status ON messages (role_key, status, send_after);
@@ -193,8 +194,31 @@ class Database:
 
     # ---- lifecycle -------------------------------------------------
 
+    MIGRATIONS = [
+        # (version introduced, SQL). Each runs once, and is safe to re-run.
+        (2, "ALTER TABLE messages ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0"),
+    ]
+
+    def _migrate(self) -> None:
+        """Add columns to a database created by an older version.
+
+        CREATE TABLE IF NOT EXISTS does not add a column to a table that
+        already exists, so every schema change needs a line here.
+        """
+        existing = {row["name"] for row in self.query("PRAGMA table_info(messages)")}
+        for _version, sql in self.MIGRATIONS:
+            column = sql.split("ADD COLUMN ")[-1].split()[0] if "ADD COLUMN" in sql else ""
+            if column and column in existing:
+                continue
+            try:
+                self.conn.execute(sql)
+            except sqlite3.OperationalError:
+                pass  # already applied
+        self.conn.commit()
+
     def init_schema(self) -> None:
         self.conn.executescript(SCHEMA)
+        self._migrate()
         self.conn.execute(
             "INSERT INTO meta (key, value) VALUES ('schema_version', ?) "
             "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
@@ -445,10 +469,24 @@ class Database:
 
     def mark_failed(self, message_id: int, error: str) -> None:
         self.conn.execute(
-            "UPDATE messages SET status = 'failed', error = ? WHERE id = ?",
+            "UPDATE messages SET status = 'failed', error = ?, attempts = attempts + 1 "
+            "WHERE id = ?",
             (error[:500], message_id),
         )
         self.conn.commit()
+
+    def requeue_failed(self, role_key: str, max_attempts: int = 3) -> int:
+        """Put failed sends back in the queue until they have had enough tries.
+
+        A provider outage should not silently drop a person out of the funnel.
+        """
+        cur = self.conn.execute(
+            "UPDATE messages SET status = 'queued' "
+            "WHERE role_key = ? AND status = 'failed' AND attempts < ?",
+            (role_key, max_attempts),
+        )
+        self.conn.commit()
+        return cur.rowcount or 0
 
     # ---- send accounting -------------------------------------------
 
@@ -458,6 +496,10 @@ class Database:
             (day, role_key, mailbox),
         )
         return int(row["count"]) if row else 0
+
+    def sends_today_all_roles(self, day: str) -> int:
+        """Every role shares the same mailboxes, so the domain cap is global."""
+        return int(self.scalar("SELECT COALESCE(SUM(count), 0) FROM send_log WHERE day = ?", (day,)) or 0)
 
     def record_send(self, role_key: str, day: str, mailbox: str = "default", n: int = 1) -> None:
         self.conn.execute(

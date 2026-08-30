@@ -356,13 +356,70 @@ class TestPipeline(unittest.TestCase):
         second = pipeline.send_due(self.db, self.settings, self.role, live=False)
         self.assertEqual(second.counts.get("sent", 0), 0)
 
-    def test_daily_cap_is_enforced(self):
+    def test_role_cap_is_enforced(self):
         day = pipeline.sending_day(self.settings)
         cap = pipeline.daily_cap(self.settings, self.role)
         self.db.record_send(self.role.key, day, n=cap)
         result = pipeline.send_due(self.db, self.settings, self.role, live=False)
         self.assertEqual(result.counts.get("sent", 0), 0)
-        self.assertTrue(any("daily cap" in n for n in result.notes))
+        self.assertTrue(any("role cap" in n for n in result.notes), result.notes)
+
+    def test_another_role_eats_the_shared_domain_cap(self):
+        """The mailboxes are shared, so one role's sends limit another's."""
+        day = pipeline.sending_day(self.settings)
+        self.db.record_send("some-other-role", day, n=pipeline.domain_cap(self.settings))
+        result = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        self.assertEqual(result.counts.get("sent", 0), 0)
+        self.assertTrue(any("domain cap" in n for n in result.notes), result.notes)
+
+    def test_a_failed_send_is_retried_then_given_up_on(self):
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, self.settings, self.role)
+        pipeline.verify_emails(self.db, self.settings, self.role)
+        pipeline.queue_next(self.db, self.settings, self.role)
+        queued = self.db.query(
+            "SELECT * FROM messages WHERE role_key = ? AND status = 'queued'", (self.role.key,)
+        )
+        self.assertTrue(queued)
+        message_id = int(queued[0]["id"])
+        for expected in (1, 2, 3):
+            self.db.mark_failed(message_id, "provider down")
+            row = self.db.one("SELECT * FROM messages WHERE id = ?", (message_id,))
+            self.assertEqual(row["attempts"], expected)
+            self.assertEqual(row["status"], "failed")
+            requeued = self.db.requeue_failed(self.role.key, max_attempts=3)
+            row = self.db.one("SELECT * FROM messages WHERE id = ?", (message_id,))
+            if expected < 3:
+                self.assertEqual(row["status"], "queued", "should still be retried")
+            else:
+                self.assertEqual(row["status"], "failed", "should be given up on")
+                self.assertEqual(requeued, 0)
+
+    def test_schema_migration_adds_the_attempts_column(self):
+        """A database made by version 1 must gain the column, not break."""
+        import sqlite3
+
+        legacy = Path(self.dir.name) / "legacy.db"
+        conn = sqlite3.connect(legacy)
+        conn.executescript(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, candidate_id INTEGER, "
+            "role_key TEXT, step INTEGER, to_address TEXT, subject TEXT, body TEXT, "
+            "rendered_at TEXT, send_after TEXT, sent_at TEXT, provider TEXT, "
+            "provider_id TEXT, status TEXT, error TEXT);"
+        )
+        conn.execute(
+            "INSERT INTO messages (role_key, step, to_address, subject, body, status) "
+            "VALUES ('r', 1, 'a@b.com', 's', 'b', 'failed')"
+        )
+        conn.commit()
+        conn.close()
+        upgraded = open_db(legacy)
+        columns = {row["name"] for row in upgraded.query("PRAGMA table_info(messages)")}
+        self.assertIn("attempts", columns)
+        self.assertEqual(upgraded.requeue_failed("r"), 1)
+        upgraded.close()
 
     def test_live_send_refuses_on_placeholder_settings(self):
         raw = json.loads(json.dumps(self.settings.raw))
