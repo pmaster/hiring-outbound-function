@@ -279,6 +279,33 @@ def cmd_bookings(args: argparse.Namespace) -> int:
 
 def cmd_suppress(args: argparse.Namespace) -> int:
     settings, _roles, db = _bootstrap(args)
+    if args.from_file:
+        path = Path(args.from_file)
+        if not path.exists():
+            raise OutboundError(f"no such file: {path}")
+        added = 0
+        for row in pipeline.read_any(path):
+            value = ""
+            if isinstance(row, dict):
+                for key in ("email", "address", "email_address", "value", "Email"):
+                    if row.get(key):
+                        value = str(row[key])
+                        break
+                if not value:
+                    # A one column export with an unknown header.
+                    values = [v for v in row.values() if isinstance(v, str) and "@" in v]
+                    value = values[0] if values else ""
+            else:
+                value = str(row)
+            if not value:
+                continue
+            db.suppress(args.kind, value, args.reason or f"imported from {path.name}")
+            added += 1
+        print(f"suppressed {added} {args.kind} value(s) from {path}")
+        db.close()
+        return 0
+    if not args.value:
+        raise OutboundError("give a value, or --from-file")
     db.suppress(args.kind, args.value, args.reason or "added by hand")
     print(f"suppressed {args.kind} {args.value}")
     db.close()
@@ -385,7 +412,8 @@ def build_parser() -> argparse.ArgumentParser:
     book.set_defaults(func=cmd_bookings)
 
     suppress = sub.add_parser("suppress", help="never contact this address, domain or profile")
-    suppress.add_argument("value")
+    suppress.add_argument("value", nargs="?")
+    suppress.add_argument("--from-file", help="CSV, JSON or JSONL of unsubscribes to import")
     suppress.add_argument("--kind", choices=["email", "domain", "linkedin"], default="email")
     suppress.add_argument("--reason")
     suppress.set_defaults(func=cmd_suppress)
