@@ -38,10 +38,13 @@ class TestAudit(unittest.TestCase):
     def _texts(self, report):
         return " | ".join(n.text for n in report.notes)
 
-    def test_an_empty_list_blocks(self):
+    def test_an_empty_list_warns_but_does_not_block(self):
+        """Every later step is a no-op on an empty list, so this is a gap in
+        the plan rather than a fault in the run."""
         report = audit_role(self.db, self.settings, self.role)
-        self.assertTrue(report.blocking)
+        self.assertEqual(report.blocking, [])
         self.assertIn("empty", self._texts(report))
+        self.assertIn("warn", [n.level for n in report.notes])
 
     def test_an_approved_candidate_with_no_note_blocks(self):
         self._seed()

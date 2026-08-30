@@ -61,7 +61,14 @@ def audit_role(db: Database, settings: Settings, role: Role) -> Audit:
     # --- size and pace -------------------------------------------------
     out.add("info", f"{total} people on the list, {live_pool} of them still in play.")
     if total == 0:
-        out.add("block", "the list is empty. `outbound search` then `outbound import`.")
+        # Not blocking. Every later step is a no-op on an empty list, and a
+        # live role that has not been sourced yet is a gap in the plan rather
+        # than a fault in the run.
+        out.add(
+            "warn",
+            "the list is empty. `outbound search "
+            f"{role.key}` prints the queries, then `outbound import {role.key} <file>`.",
+        )
         return out
     if total < role.target_list_size:
         out.add(
