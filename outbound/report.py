@@ -6,7 +6,7 @@ from typing import Any
 
 from .config import Role, Settings
 from .db import STAGES, Database
-from .pipeline import sending_day
+from .pipeline import bounce_guard, domain_cap, sending_day, warmup_cap
 from .util import now
 
 
@@ -142,11 +142,33 @@ def summary(db: Database, settings: Settings, roles: dict[str, Role], role_key: 
     parts.append("")
     day = sending_day(settings)
     rows = db.query("SELECT role_key, mailbox, count FROM send_log WHERE day = ?", (day,))
+    total_today = sum(int(r["count"]) for r in rows)
     if rows:
         for row in rows:
             parts.append(f"  {row['role_key']} via {row['mailbox']}: {row['count']}")
     else:
         parts.append("  nothing sent today.")
+    parts.append("")
+
+    warm_cap, warm_note = warmup_cap(settings, db)
+    ceiling = warm_cap if warm_cap >= 0 else domain_cap(settings)
+    label = "warm up cap" if warm_cap >= 0 else "domain cap"
+    parts.append(f"  {total_today}/{ceiling} against the {label} across all roles.")
+    if warm_note:
+        parts.append(f"  {warm_note}")
+
+    rate, bounced, sent = db.bounce_rate()
+    if sent:
+        threshold = float(settings.get("limits.max_bounce_rate", 0.03))
+        mark = "OVER THE CEILING" if rate > threshold else "fine"
+        parts.append(
+            f"  bounce rate {rate:.1%} ({bounced} of the last {sent}), "
+            f"ceiling {threshold:.0%}: {mark}"
+        )
+    stop = bounce_guard(settings, db)
+    if stop:
+        parts.append("")
+        parts.append(f"  SENDING IS HALTED: {stop}")
     parts.append("")
     parts.append("## Do next")
     parts.append("")

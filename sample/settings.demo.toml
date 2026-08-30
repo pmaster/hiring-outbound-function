@@ -26,6 +26,7 @@ stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
 
 [warmup]
 require_warmup_done = false
+ramp = []
 
 [booking]
 screener_url      = "https://cal.example/peter/screener-10min"
@@ -61,6 +62,11 @@ max_sends_per_run       = 60
 # two of our emails can see it was a mass mailing.
 one_role_per_person       = true
 never_enrich_rejected   = true
+# Stop sending if the bounce rate over the recent window goes above this.
+# Above about 3 percent damages a domain that has no reputation to spend.
+max_bounce_rate         = 0.03
+bounce_rate_window      = 200
+bounce_rate_min_sends   = 40
 enrich_attempts         = 2
 
 [storage]

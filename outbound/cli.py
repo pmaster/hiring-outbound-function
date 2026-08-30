@@ -24,7 +24,7 @@ from typing import Any
 
 from . import bookings as bookings_mod
 from . import pipeline, report
-from .compliance import preflight
+from .compliance import Problem, preflight
 from .config import CONFIG_DIR, REPO_ROOT, Role, Settings, get_role, load_all
 from .db import Database, open_db
 from .errors import OutboundError
@@ -69,9 +69,23 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
+    from . import pipeline as pipeline_mod
+
     settings, roles = load_all(Path(args.config) if args.config else None)
     role = get_role(roles, args.role) if args.role else None
     problems = preflight(settings, role)
+
+    db = open_db(settings.db_path)
+    try:
+        warm_cap, warm_note = pipeline_mod.warmup_cap(settings, db)
+        if warm_cap >= 0:
+            print(f"WARM UP {warm_note}. Today's ceiling is {warm_cap} across all roles.")
+            print()
+        stop = pipeline_mod.bounce_guard(settings, db)
+        if stop:
+            problems = list(problems) + [Problem("bounce_rate", stop)]
+    finally:
+        db.close()
 
     dns_failed = False
     if getattr(args, "dns", False):

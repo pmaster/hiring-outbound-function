@@ -437,6 +437,77 @@ class TestPipeline(unittest.TestCase):
         second = pipeline.send_due(self.db, self.settings, self.role, live=False)
         self.assertEqual(second.counts.get("sent", 0), 0)
 
+    def _ramped(self, ramp):
+        raw = json.loads(json.dumps(self.settings.raw))
+        raw["warmup"]["ramp"] = ramp
+        return Settings(raw=raw)
+
+    def test_warmup_ramp_counts_sending_days_not_calendar_days(self):
+        ramped = self._ramped([[3, 5], [3, 10], [0, 0]])
+        # Nothing sent yet: day one of the ramp.
+        cap, note = pipeline.warmup_cap(ramped, self.db)
+        self.assertEqual(cap, 5)
+        self.assertIn("day 1", note)
+        # Three days of sending, whenever they happened.
+        for day in ("2026-08-01", "2026-08-05", "2026-08-20"):
+            self.db.record_send(self.role.key, day, n=5)
+        cap, _note = pipeline.warmup_cap(ramped, self.db)
+        self.assertEqual(cap, 10)
+        for day in ("2026-08-21", "2026-08-24", "2026-08-25"):
+            self.db.record_send(self.role.key, day, n=10)
+        cap, _note = pipeline.warmup_cap(ramped, self.db)
+        self.assertEqual(cap, -1, "ramp should be finished")
+
+    def test_an_empty_ramp_means_no_warm_up_limit(self):
+        cap, note = pipeline.warmup_cap(self._ramped([]), self.db)
+        self.assertEqual(cap, -1)
+        self.assertEqual(note, "")
+
+    def test_the_warmup_cap_actually_limits_a_send(self):
+        ramped = self._ramped([[3, 2], [0, 0]])
+        self._seed()
+        for row in self.db.candidates(self.role.key, stages=["review"]):
+            pipeline.set_review(self.db, self.role, int(row["id"]), "approve", "a detail")
+        pipeline.enrich(self.db, ramped, self.role)
+        pipeline.verify_emails(self.db, ramped, self.role)
+        pipeline.queue_next(self.db, ramped, self.role)
+        result = pipeline.send_due(self.db, ramped, self.role, live=False)
+        self.assertLessEqual(result.counts.get("sent", 0), 2)
+
+    def test_the_bounce_guard_stops_a_send(self):
+        day = pipeline.sending_day(self.settings)
+        # 50 sends, 5 of them bounced: 10 percent, over the 3 percent ceiling.
+        for index in range(50):
+            cid, _ = self.db.upsert_candidate(
+                self.role.key, {"linkedin_url": f"linkedin.com/in/p{index}", "full_name": f"P {index}"}
+            )
+            address = f"p{index}@example.com"
+            self.db.add_email(cid, address)
+            mid = self.db.queue_message(cid, self.role.key, 1, address, "s", "b", "2026-08-01T00:00:00+00:00")
+            self.db.mark_sent(mid, "dryrun")
+            if index < 5:
+                self.db.set_stage(cid, "bounced")
+        rate, bounced, sent = self.db.bounce_rate()
+        self.assertEqual((bounced, sent), (5, 50))
+        self.assertAlmostEqual(rate, 0.1, places=3)
+        self.assertIn("bounce rate", pipeline.bounce_guard(self.settings, self.db))
+        with self.assertRaises(SafetyStop):
+            pipeline.send_due(self.db, self.settings, self.role, live=False)
+
+    def test_the_bounce_guard_waits_for_enough_data(self):
+        """Two bounces out of five is 40 percent and means nothing."""
+        for index in range(5):
+            cid, _ = self.db.upsert_candidate(
+                self.role.key, {"linkedin_url": f"linkedin.com/in/q{index}", "full_name": f"Q {index}"}
+            )
+            address = f"q{index}@example.com"
+            self.db.add_email(cid, address)
+            mid = self.db.queue_message(cid, self.role.key, 1, address, "s", "b", "2026-08-01T00:00:00+00:00")
+            self.db.mark_sent(mid, "dryrun")
+            if index < 2:
+                self.db.set_stage(cid, "bounced")
+        self.assertEqual(pipeline.bounce_guard(self.settings, self.db), "")
+
     def test_role_cap_is_enforced(self):
         day = pipeline.sending_day(self.settings)
         cap = pipeline.daily_cap(self.settings, self.role)

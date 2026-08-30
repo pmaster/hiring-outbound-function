@@ -93,6 +93,34 @@ class TestCli(unittest.TestCase):
         self.assertIn("IMAP_HOST", output)
         self.assertNotIn("Traceback", output)
 
+    def test_doctor_reports_a_bounce_rate_over_the_ceiling(self):
+        from outbound.config import load_all
+        from outbound.db import open_db
+
+        settings, _roles = load_all(DEMO_SETTINGS)
+        db = open_db(settings.db_path)
+        try:
+            for index in range(60):
+                cid, _ = db.upsert_candidate(
+                    "engineer",
+                    {"linkedin_url": f"linkedin.com/in/bounce{index}", "full_name": f"B {index}"},
+                )
+                address = f"bounce{index}@example.com"
+                db.add_email(cid, address)
+                mid = db.queue_message(cid, "engineer", 1, address, "s", "b",
+                                       "2026-08-01T00:00:00+00:00")
+                db.mark_sent(mid, "dryrun")
+                if index < 20:
+                    db.set_stage(cid, "bounced")
+            code, output = run("doctor")
+            self.assertEqual(code, 1, output)
+            self.assertIn("bounce rate", output.lower())
+        finally:
+            # Leave the demo database as the other tests expect it.
+            db.execute("DELETE FROM messages WHERE to_address LIKE 'bounce%'")
+            db.execute("DELETE FROM candidates WHERE linkedin_key LIKE '%bounce%'")
+            db.close()
+
     def test_pages_writes_a_site(self):
         import tempfile
 

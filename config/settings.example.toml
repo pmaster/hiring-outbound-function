@@ -51,6 +51,11 @@ stop_on             = ["replied", "booked", "unsubscribed", "bounced"]
 # measure that, so it is an attestation: `outbound doctor` keeps reminding you
 # until you send with --attest-warmup. Ten days at this volume. See docs/SETUP.md.
 require_warmup_done   = true
+# The ramp, as [days at this level, emails per day]. Counted in days the
+# domain actually sent on, so a weekend does not fast forward it. Empty list
+# means no ramp. A new domain that sends full volume on day one gets filtered,
+# and the filtering is silent.
+ramp = [[3, 5], [3, 10], [4, 14], [0, 0]]
 
 [booking]
 # The 10 minute screener. Create it, then paste the link here.
@@ -106,6 +111,11 @@ max_sends_per_run         = 60
 one_role_per_person       = true
 never_enrich_rejected     = true
 # Ask the enrichment waterfall this many times before giving up on a person.
+# Stop sending if the bounce rate over the recent window goes above this.
+# Above about 3 percent damages a domain that has no reputation to spend.
+max_bounce_rate         = 0.03
+bounce_rate_window      = 200
+bounce_rate_min_sends   = 40
 enrich_attempts           = 2
 
 [storage]

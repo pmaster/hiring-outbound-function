@@ -427,6 +427,61 @@ def can_send_now(settings: Settings, at: _dt.datetime | None = None) -> tuple[bo
     return True, ""
 
 
+def warmup_cap(settings: Settings, db: Database) -> tuple[int, str]:
+    """Today's ceiling while the domain is warming up.
+
+    A new domain that sends its full volume on day one gets filtered, and the
+    filtering is silent. The ramp is counted in days the domain has actually
+    sent on, not calendar days, so a weekend or a pause does not fast forward
+    it.
+
+    Returns (cap, note). A cap of -1 means warm up is finished.
+    """
+    ramp = settings.get("warmup.ramp", []) or []
+    if not ramp:
+        return -1, ""
+    used = db.sending_days_used()
+    elapsed = 0
+    for entry in ramp:
+        try:
+            days, per_day = int(entry[0]), int(entry[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if days <= 0:
+            return -1, ""
+        if used < elapsed + days:
+            remaining = elapsed + days - used
+            return per_day, (
+                f"warm up day {used + 1}: {per_day} a day, "
+                f"{remaining} more day(s) at this level"
+            )
+        elapsed += days
+    return -1, ""
+
+
+def bounce_guard(settings: Settings, db: Database) -> str:
+    """Empty string when the bounce rate is fine, otherwise the reason to stop.
+
+    A bounce rate above about three percent damages a young sending domain,
+    and this one has no reputation to spend. Stopping is cheap; a filtered
+    domain is not.
+    """
+    threshold = float(settings.get("limits.max_bounce_rate", 0.03))
+    minimum = int(settings.get("limits.bounce_rate_min_sends", 40))
+    window = int(settings.get("limits.bounce_rate_window", 200))
+    rate, bounced, sent = db.bounce_rate(window)
+    if sent < minimum:
+        return ""
+    if rate > threshold:
+        return (
+            f"bounce rate is {rate:.1%} ({bounced} of the last {sent} sends), "
+            f"over the {threshold:.0%} ceiling. Stop and fix the list or the "
+            f"verifier before sending more. Raise limits.max_bounce_rate only "
+            f"if you know why the rate is high."
+        )
+    return ""
+
+
 def domain_cap(settings: Settings) -> int:
     """How many emails may leave the sending domain today, across all roles.
 
@@ -566,16 +621,30 @@ def send_due(
     if requeued:
         result.notes.append(f"put {requeued} previously failed message(s) back in the queue")
 
+    stop = bounce_guard(settings, db)
+    if stop:
+        raise SafetyStop(stop)
+
     already_role = db.sends_today(role.key, day)
     already_domain = db.sends_today_all_roles(day)
     role_room = max(0, daily_cap(settings, role) - already_role)
     domain_room = max(0, domain_cap(settings) - already_domain)
     room = min(role_room, domain_room)
+
+    warm_cap, warm_note = warmup_cap(settings, db)
+    if warm_cap >= 0:
+        room = min(room, max(0, warm_cap - already_domain))
+        result.notes.append(warm_note)
     if limit is not None:
         room = min(room, limit)
     room = min(room, int(settings.get("limits.max_sends_per_run", 60)))
     if room <= 0:
-        if domain_room <= 0:
+        if warm_cap >= 0 and already_domain >= warm_cap:
+            result.notes.append(
+                f"warm up cap reached: {already_domain}/{warm_cap} sent today. "
+                f"{warm_note}"
+            )
+        elif domain_room <= 0:
             result.notes.append(
                 f"domain cap reached: {already_domain}/{domain_cap(settings)} sent from "
                 f"the sending domain today, across all roles"

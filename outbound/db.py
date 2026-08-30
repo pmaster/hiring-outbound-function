@@ -525,6 +525,55 @@ class Database:
         )
         return int(row["count"]) if row else 0
 
+    def meta_get(self, key: str, default: str = "") -> str:
+        row = self.one("SELECT value FROM meta WHERE key = ?", (key,))
+        return str(row["value"]) if row else default
+
+    def meta_set(self, key: str, value: str) -> None:
+        self.conn.execute(
+            "INSERT INTO meta (key, value) VALUES (?, ?) "
+            "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        self.conn.commit()
+
+    def meta_setdefault(self, key: str, value: str) -> str:
+        current = self.meta_get(key)
+        if current:
+            return current
+        self.meta_set(key, value)
+        return value
+
+    def sending_days_used(self) -> int:
+        """How many distinct days this domain has actually sent on."""
+        return int(
+            self.scalar("SELECT COUNT(DISTINCT day) FROM send_log WHERE count > 0") or 0
+        )
+
+    def bounce_rate(self, window: int = 200) -> tuple[float, int, int]:
+        """(rate, bounced, sent) over the most recent `window` sends."""
+        recent = self.query(
+            "SELECT to_address FROM messages WHERE status = 'sent' "
+            "ORDER BY sent_at DESC LIMIT ?",
+            (window,),
+        )
+        if not recent:
+            return 0.0, 0, 0
+        addresses = [r["to_address"] for r in recent if r["to_address"]]
+        if not addresses:
+            return 0.0, 0, 0
+        marks = ",".join("?" for _ in addresses)
+        bounced = int(
+            self.scalar(
+                f"SELECT COUNT(DISTINCT c.id) FROM candidates c "
+                f"JOIN emails e ON e.candidate_id = c.id "
+                f"WHERE c.stage = 'bounced' AND e.address IN ({marks})",
+                addresses,
+            )
+            or 0
+        )
+        return bounced / len(addresses), bounced, len(addresses)
+
     def sends_today_all_roles(self, day: str) -> int:
         """Every role shares the same mailboxes, so the domain cap is global."""
         return int(self.scalar("SELECT COALESCE(SUM(count), 0) FROM send_log WHERE day = ?", (day,)) or 0)
