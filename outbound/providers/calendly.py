@@ -46,32 +46,44 @@ class CalendlyBooking:
             params["user"] = self.user
         if since:
             params["min_start_time"] = since
-        data = httpjson.get(f"{BASE}/scheduled_events", headers=self._headers(), params=params)
         out: list[dict[str, Any]] = []
-        for event in (data or {}).get("collection", []):
-            uri = str(event.get("uri") or "")
-            uuid = uri.rstrip("/").split("/")[-1]
-            invitees = httpjson.get(
-                f"{BASE}/scheduled_events/{uuid}/invitees",
-                headers=self._headers(),
-                params={"count": 10},
-            )
-            for invitee in (invitees or {}).get("collection", []):
-                answers = {
-                    str(q.get("question")): str(q.get("answer"))
-                    for q in invitee.get("questions_and_answers", [])
-                    if isinstance(q, dict)
-                }
-                out.append(
-                    {
-                        "provider_id": uuid,
-                        "attendee_name": invitee.get("name"),
-                        "attendee_email": norm_email(invitee.get("email") or ""),
-                        "start_at": event.get("start_time"),
-                        "end_at": event.get("end_time"),
-                        "answers": answers,
-                    }
+        # Follow pagination.next_page. Reading only the first page silently
+        # drops bookings once there are more than `count` active events, and
+        # the whole point is not to miss a booking.
+        url = f"{BASE}/scheduled_events"
+        for _page in range(50):
+            data = httpjson.get(url, headers=self._headers(), params=params) or {}
+            for event in data.get("collection", []):
+                uri = str(event.get("uri") or "")
+                uuid = uri.rstrip("/").split("/")[-1]
+                invitees = httpjson.get(
+                    f"{BASE}/scheduled_events/{uuid}/invitees",
+                    headers=self._headers(),
+                    params={"count": 10},
                 )
+                for invitee in (invitees or {}).get("collection", []):
+                    answers = {
+                        str(q.get("question")): str(q.get("answer"))
+                        for q in invitee.get("questions_and_answers", [])
+                        if isinstance(q, dict)
+                    }
+                    out.append(
+                        {
+                            "provider_id": uuid,
+                            "attendee_name": invitee.get("name"),
+                            "attendee_email": norm_email(invitee.get("email") or ""),
+                            "start_at": event.get("start_time"),
+                            "end_at": event.get("end_time"),
+                            "answers": answers,
+                        }
+                    )
+            next_page = (data.get("pagination") or {}).get("next_page")
+            if not next_page:
+                break
+            # next_page is a full URL with the cursor baked in; params are
+            # already encoded into it, so send it bare.
+            url = next_page
+            params = {}
         return out
 
     def cancel(self, provider_id: str, reason: str) -> bool:

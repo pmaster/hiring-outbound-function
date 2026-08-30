@@ -436,6 +436,32 @@ class TestBookingAdapters(ProviderTestCase):
         with self.assertRaises(ConfigError):
             providers.build("booking", "calendly", settings_with("calendly", {}))
 
+    def test_calendly_follows_pagination(self):
+        """Reading only the first page silently drops bookings past count=100."""
+        pages = {
+            "https://api.calendly.com/scheduled_events": {
+                "collection": [{"uri": "https://api.calendly.com/scheduled_events/e1",
+                                "start_time": "t", "end_time": "t"}],
+                "pagination": {"next_page": "https://api.calendly.com/scheduled_events?page=2"},
+            },
+            "https://api.calendly.com/scheduled_events?page=2": {
+                "collection": [{"uri": "https://api.calendly.com/scheduled_events/e2",
+                                "start_time": "t", "end_time": "t"}],
+                "pagination": {"next_page": None},
+            },
+        }
+
+        def respond(url, headers=None, params=None, body=None, **kw):
+            if "/invitees" in url:
+                return {"collection": [{"name": "N", "email": "n@x.com", "questions_and_answers": []}]}
+            return pages[url]
+
+        settings = settings_with("calendly", {"user": "https://api.calendly.com/users/u1"})
+        with mock.patch.object(httpjson, "get", respond):
+            adapter = providers.build("booking", "calendly", settings)
+            out = adapter.list_bookings()
+        self.assertEqual(sorted(b["provider_id"] for b in out), ["e1", "e2"])
+
     def test_calendly_pairs_events_with_invitee_answers(self):
         def respond(url, params, body):
             if url.endswith("/scheduled_events"):

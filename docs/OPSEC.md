@@ -11,10 +11,13 @@ confuse opsec with legal insulation.
 
 ## The four hard rules
 
-1. **Never send from a live brand domain.** Not `viewlineventures.com`, not
-   `sunbirdsystems.com`. One complaint cluster blocklists the domain and takes
-   normal business email with it. The code refuses both, and the free mail
-   providers too.
+1. **Never send FTE outreach from the client or internal domains.** Not
+   `cornerstonegigs.com` (reserved for clients and gig workers, and the name
+   fails a bank compliance check) and not `sunrunlabs.com` (the internal
+   corporate identity). The code hard-blocks both, and the free mail providers
+   too. The FTE hiring domain is `viewlineventures.com`, chosen by Peter on
+   2026-08-30; sending from it is a deliberate decision, not a default (see
+   `DECISIONS.md` and the code's `CONTESTED_SENDING_DOMAINS`).
 
 2. **Never redirect the sending domain to the main site.** A redirect
    re-links the new domain to an identity that already has a problem, and it

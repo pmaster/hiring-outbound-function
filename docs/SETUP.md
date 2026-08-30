@@ -17,13 +17,29 @@ a founder sent email.
 
 Set `sender` in the role file. It is a label for people, not a switch.
 
-## 2. Register the sending domain
+## 2. The sending domain
 
-Do NOT send from `viewlineventures.com` or `sunbirdsystems.com`. One complaint
-cluster blocklists the domain and kills normal business email. The code refuses
-both.
+**Decided (Peter, 2026-08-30): outbound sends from viewlineventures.com.** It
+is the domain designated for full-time hiring, and it already sends job
+notifications. `config/settings.toml` records the decision, so `outbound
+doctor` does not keep asking.
 
-1. Register one new domain at a **different registrar** from the live brands.
+The outbound SOP argued against sending from a domain that also carries normal
+business email, because one complaint cluster can take that email down with
+it. Peter weighed that and chose. Two things from the SOP's argument still
+hold, so do them:
+
+- Send from a **dedicated mailbox**, not one anyone relies on.
+- Keep the volume low. The caps in `settings.toml` already are.
+
+Whatever the domain, these two are hard-blocked by the code and must never
+send FTE outreach: `cornerstonegigs.com` (the client and gig-worker domain,
+and the name fails a bank compliance check) and `sunrunlabs.com` (the internal
+corporate identity). Free mail providers are blocked too.
+
+If you ever stand up a **separate** recruiting domain instead:
+
+1. Register it at a **different registrar** from the live brands.
 2. Turn on WHOIS privacy at the moment of registration. Adding it later does
    nothing, because the history is already captured.
 3. Give the domain its own small careers page. Do **not** redirect it to the
