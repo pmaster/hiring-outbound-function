@@ -88,7 +88,7 @@ class TestReport(unittest.TestCase):
         pipeline.enrich(self.db, self.settings, self.role)
         pipeline.verify_emails(self.db, self.settings, self.role)
         pipeline.queue_next(self.db, self.settings, self.role)
-        pipeline.send_due(self.db, self.settings, self.role, live=False)
+        pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
 
     def test_an_empty_report_does_not_crash_or_lie(self):
         text = report.summary(self.db, self.settings, self.roles)

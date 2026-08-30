@@ -81,13 +81,18 @@ def audit_role(db: Database, settings: Settings, role: Role) -> Audit:
     per_day = min(daily_cap(settings, role), domain_cap(settings))
     if warm_cap >= 0:
         out.add("info", f"warm up is active: {warm_note}")
+        # Warm up is the binding limit while it is on. Estimating throughput
+        # off the daily cap alone tells him it clears in days when the ramp
+        # holds it to a fraction of that.
+        per_day = min(per_day, warm_cap)
     sendable = sum(counts.get(s, 0) for s in ("verified", "queued"))
     if per_day > 0 and sendable:
         days = -(-sendable // per_day)
+        weeks = -(-days // 5)
         out.add(
             "info",
             f"{sendable} ready to send at {per_day} a day is about "
-            f"{days} working day(s), so roughly {days // 5 + 1} week(s).",
+            f"{days} working day(s), so roughly {weeks} week(s).",
         )
 
     # --- things that should not be written to --------------------------

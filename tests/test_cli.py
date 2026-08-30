@@ -73,7 +73,11 @@ class TestCli(unittest.TestCase):
 
     def test_send_without_live_says_so(self):
         _code, output = run("send", "engineer")
-        self.assertIn("DRY RUN", output.upper())
+        up = output.upper()
+        # No --live is a preview now: it must say nothing was sent and
+        # point at --live, so no one mistakes it for a real send.
+        self.assertIn("PREVIEW", up)
+        self.assertIn("--LIVE", up)
 
     def test_errors_are_messages_not_tracebacks(self):
         cases = [

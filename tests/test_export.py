@@ -40,7 +40,7 @@ class TestExport(unittest.TestCase):
         pipeline.enrich(self.db, self.settings, self.role)
         pipeline.verify_emails(self.db, self.settings, self.role)
         pipeline.queue_next(self.db, self.settings, self.role)
-        pipeline.send_due(self.db, self.settings, self.role, live=False)
+        pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
         for row in self.db.candidates(self.role.key, stages=["sent"]):
             self.db.set_stage(int(row["id"]), "replied")
 

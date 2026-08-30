@@ -397,6 +397,7 @@ def cmd_send(args: argparse.Namespace) -> int:
             db, settings, role,
             live=args.live, limit=args.limit,
             attest_warmup=args.attest_warmup, ignore_window=args.ignore_window,
+            commit=args.live,
         )
     )
     db.close()

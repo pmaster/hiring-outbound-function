@@ -632,6 +632,17 @@ def queue_next(
             result.notes.append(f"id {row['id']} step {next_step}: {exc}")
             result.bump("render_failed")
             continue
+        # Same gate as step 1. A follow-up carries the unsubscribe line and
+        # postal address too, and a config drift that drops them must stop
+        # the queue here, not surface at send time or slip out.
+        problems = message_problems(settings, rendered.body)
+        if problems:
+            result.notes.append(
+                f"id {row['id']} step {next_step}: "
+                + "; ".join(p.message for p in problems)
+            )
+            result.bump("compliance_failed")
+            continue
         db.queue_message(
             row["id"], role.key, next_step, email["address"],
             rendered.subject, rendered.body, iso(due), variant=rendered.variant,
@@ -727,12 +738,23 @@ def send_due(
     limit: int | None = None,
     attest_warmup: bool = False,
     ignore_window: bool = False,
+    commit: bool | None = None,
 ) -> StepResult:
     """Send every queued message that is due, up to the daily cap.
 
     `live` is the safety switch. Without it the send goes through the dry run
     provider and lands in the outbox, whatever `providers.send` says.
+
+    `commit` decides whether the run changes state. When it does not commit, it
+    is a true preview: messages are rendered to the outbox so you can read
+    them, but nothing is marked sent, no candidate stage moves, and no cap is
+    spent. A live send always commits. `commit` defaults to `live`, so
+    `outbound send` without --live previews and changes nothing, which is what
+    the operator expects. The demo and tests pass commit=True to walk the
+    funnel offline.
     """
+    if commit is None:
+        commit = live
     result = StepResult(step=f"send[{role.key}]")
     if live:
         assert_sendable(settings, role, attest_warmup=attest_warmup)
@@ -742,6 +764,12 @@ def send_due(
 
     name = str(settings.get("providers.send", "dryrun")) if live else "dryrun"
     provider = provider_registry.build("send", name, settings)
+    # A preview always renders through the dryrun provider, whatever
+    # providers.send is, so nothing can leave the machine.
+    preview_provider = (
+        provider if name == "dryrun"
+        else provider_registry.build("send", "dryrun", settings)
+    )
 
     day = sending_day(settings)
     requeued = db.requeue_failed(role.key, max_attempts=int(settings.get("limits.send_attempts", 3)))
@@ -815,6 +843,12 @@ def send_due(
             "candidate_id": message["candidate_id"],
             "variant": message.get("variant", "a"),
         }
+        if not commit:
+            # Preview: render to the outbox so it can be read, but record
+            # nothing and leave the message queued.
+            preview_provider.send(payload)
+            result.bump("previewed")
+            continue
         try:
             provider_id = provider.send(payload)
         except Exception as exc:
@@ -827,6 +861,14 @@ def send_due(
         if candidate:
             db.set_stage(int(candidate["id"]), "sent", f"step {message['step']} sent")
         result.bump("sent")
-    if not live:
-        result.notes.append("DRY RUN. Nothing left this machine. Pass --live to send.")
+    if not commit:
+        result.notes.append(
+            "PREVIEW. Messages were written to the outbox to read; nothing was "
+            "sent, no stage moved, no cap spent. Pass --live to send."
+        )
+    elif not live:
+        result.notes.append(
+            "DRY RUN (committed). Messages went to the outbox and the funnel "
+            "advanced, but nothing left this machine. Pass --live to send for real."
+        )
     return result

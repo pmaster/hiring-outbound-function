@@ -126,6 +126,12 @@ FOREIGN_TAIL_CODES = {
     "IL", "CH", "UA", "RS", "TR",
 }
 
+# US state codes that are ALSO the ISO code of a blocked country. Only for
+# these three does a foreign-city hint override the US-state reading of a bare
+# tail. Every other US state code (GA, TX, VA, FL, OH, NH ...) reads as US even
+# when the city shares a name with a European one (Athens GA, Paris TX).
+AMBIGUOUS_STATE_CODES = {"CA", "DE", "MT"}
+
 HEADCOUNT_BANDS = {
     "1": 1, "2-10": 6, "11-50": 30, "51-200": 125, "201-500": 350,
     "501-1000": 750, "1001-5000": 3000, "5001-10000": 7500, "10001+": 20000,
@@ -202,19 +208,26 @@ def guess_country(location: str | None, explicit: str | None = None) -> str:
     for needle, code in COUNTRY_HINTS:
         if _has_word(text, needle):
             return code
-    # A foreign city resolves the 2-letter-tail ambiguity before we read the
-    # tail as a US state. Without this, "Toronto, CA" reads as California and
-    # a Canadian is emailed in breach of CASL.
-    for needle, code in FOREIGN_CITY_HINTS:
-        if _has_word(text, needle):
-            return code
     tail = (location or "").split(",")[-1].strip().upper().rstrip(".")
     if tail in {"US", "USA", "U.S", "U.S.A", "UNITED STATES"}:
         return "US"
     if tail in US_STATES:
+        # A valid US state tail reads as US, so "Athens, GA" is Georgia, not
+        # Greece. Only the three codes that shadow a blocked country defer to a
+        # foreign-city hint, so "Toronto, CA" stays Canada while
+        # "Los Angeles, CA" stays California.
+        if tail in AMBIGUOUS_STATE_CODES:
+            for needle, code in FOREIGN_CITY_HINTS:
+                if _has_word(text, needle):
+                    return code
         return "US"
     if tail in FOREIGN_TAIL_CODES:
         return tail
+    # No recognized tail: a bare foreign city name ("Toronto", "Berlin, Germany"
+    # already handled above) still resolves.
+    for needle, code in FOREIGN_CITY_HINTS:
+        if _has_word(text, needle):
+            return code
     return ""
 
 

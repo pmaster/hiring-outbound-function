@@ -407,8 +407,9 @@ class Database:
         return self.one(
             "SELECT c.* FROM candidates c "
             "JOIN messages m ON m.candidate_id = c.id "
-            "WHERE c.linkedin_key = ? AND c.role_key != ? AND m.status = 'sent' "
-            "ORDER BY m.sent_at ASC LIMIT 1",
+            "WHERE c.linkedin_key = ? AND c.role_key != ? "
+            "AND m.status IN ('queued', 'sent') "
+            "ORDER BY (m.sent_at IS NULL), m.sent_at ASC LIMIT 1",
             (linkedin_key, role_key),
         )
 

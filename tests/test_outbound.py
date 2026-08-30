@@ -577,9 +577,9 @@ class TestPipeline(unittest.TestCase):
         pipeline.enrich(self.db, self.settings, self.role)
         pipeline.verify_emails(self.db, self.settings, self.role)
         pipeline.queue_next(self.db, self.settings, self.role)
-        first = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        first = pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
         self.assertGreater(first.counts.get("sent", 0), 0)
-        second = pipeline.send_due(self.db, self.settings, self.role, live=False)
+        second = pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
         self.assertEqual(second.counts.get("sent", 0), 0)
 
     def _ramped(self, ramp):
@@ -616,7 +616,7 @@ class TestPipeline(unittest.TestCase):
         pipeline.enrich(self.db, ramped, self.role)
         pipeline.verify_emails(self.db, ramped, self.role)
         pipeline.queue_next(self.db, ramped, self.role)
-        result = pipeline.send_due(self.db, ramped, self.role, live=False)
+        result = pipeline.send_due(self.db, ramped, self.role, live=False, commit=True)
         self.assertLessEqual(result.counts.get("sent", 0), 2)
 
     def test_the_bounce_guard_stops_a_send(self):
@@ -856,7 +856,7 @@ class TestPipeline(unittest.TestCase):
             "review_state = 'approved' WHERE id = ?", (dupe["id"],))
         self.db.add_email(int(dupe["id"]), "dupe@example.com", primary=True)
         pipeline.queue_next(self.db, self.settings, self.role)
-        pipeline.send_due(self.db, self.settings, self.role, live=False)
+        pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
 
         result = pipeline.queue_next(self.db, self.settings, other)
         self.assertGreaterEqual(
@@ -874,7 +874,7 @@ class TestPipeline(unittest.TestCase):
         pipeline.enrich(self.db, self.settings, self.role)
         pipeline.verify_emails(self.db, self.settings, self.role)
         pipeline.queue_next(self.db, self.settings, self.role)
-        pipeline.send_due(self.db, self.settings, self.role, live=False)
+        pipeline.send_due(self.db, self.settings, self.role, live=False, commit=True)
         sent = self.db.candidates(self.role.key, stages=["sent"])
         self.assertTrue(sent)
         target = sent[0]

@@ -97,9 +97,13 @@ def run_demo(reset: bool = True) -> int:
     for role in live_roles:
         print(pipeline.queue_next(db, settings, role))
 
-    _banner("7. SEND. Dry run, so the emails land in the outbox instead of a mailbox.")
+    _banner("7. SEND. Offline, so the emails land in the outbox instead of a mailbox.")
     for role in live_roles:
-        print(pipeline.send_due(db, settings, role, live=False))
+        # commit=True walks the funnel offline: the dryrun provider still keeps
+        # real mail out of a mailbox, but the stages advance so the rest of the
+        # demo (replies, bookings) has sent mail to work against. A plain
+        # `outbound send` with no --live previews instead and changes nothing.
+        print(pipeline.send_due(db, settings, role, live=False, commit=True))
 
     _banner("8. REPLIES. Someone answers. Two of these need different handling.")
     from unittest import mock

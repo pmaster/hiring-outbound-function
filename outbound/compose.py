@@ -24,6 +24,9 @@ from .util import now, token_for
 
 TEMPLATES_DIR = REPO_ROOT / "templates"
 TOKEN_RE = re.compile(r"\{\{\s*([a-z0-9_]+)\s*\}\}", re.I)
+# A single-brace `{token}` is a malformed double-brace token: the renderer
+# only fills `{{token}}`, so a one-brace slip ships the literal text.
+SINGLE_BRACE_RE = re.compile(r"(?<!\{)\{[a-z0-9_][a-z0-9_ ]{0,38}\}(?!\})", re.I)
 
 # Tells from topics/no-ai-smell.md. A rendered email that trips these reads as
 # machine written, and the whole point of a founder send is that it does not.
@@ -236,6 +239,15 @@ def lint(subject: str, body: str, strict: bool = True) -> list[str]:
             problems.append(f"unfinished copy marker in the text: {marker!r}")
     if TOKEN_RE.search(joined):
         problems.append("an unrendered {{token}} is still in the copy")
+    # Strip valid double-brace tokens, then any lone `{...}` left is a typo
+    # for `{{...}}` that would ship as literal text (e.g. `{personal_note}`).
+    stripped = TOKEN_RE.sub("", joined)
+    single = SINGLE_BRACE_RE.search(stripped)
+    if single:
+        problems.append(
+            f"single-brace token {single.group(0)!r}: did you mean "
+            f"{{{{{single.group(0).strip('{}').strip()}}}}}?"
+        )
     if not subject.strip():
         problems.append("empty subject")
     if subject.strip().endswith("!"):
@@ -259,12 +271,16 @@ def render(
     path = template_path(role, step, variant)
     subject_raw, body_raw = _read_template(path)
 
-    if step == 1 and "{{personal_note}}" not in body_raw.replace(" ", ""):
-        if "personal_note" not in body_raw:
-            raise ConfigError(
-                f"{path}: step 1 must include {{{{personal_note}}}}. "
-                f"No detail, no email."
-            )
+    # Step 1 must carry the real double-brace {{personal_note}} token, not a
+    # single-brace slip or the bare word in prose: only the token renders,
+    # and the whole approach depends on that one specific detail landing.
+    if step == 1 and not any(
+        m.group(1).lower() == "personal_note" for m in TOKEN_RE.finditer(body_raw)
+    ):
+        raise ConfigError(
+            f"{path}: step 1 must include the {{{{personal_note}}}} token. "
+            f"No detail, no email."
+        )
     if step == 1 and not str(candidate.get("personal_note") or "").strip():
         raise OutboundError(
             f"candidate {candidate.get('id')} ({candidate.get('full_name')}) has no "

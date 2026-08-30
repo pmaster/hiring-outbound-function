@@ -167,7 +167,7 @@ class TestReplyApply(unittest.TestCase):
         pipeline.enrich(db, settings, role)
         pipeline.verify_emails(db, settings, role)
         pipeline.queue_next(db, settings, role)
-        pipeline.send_due(db, settings, role, live=False)
+        pipeline.send_due(db, settings, role, live=False, commit=True)
         address = sorted(replies.written_addresses(db))[0]
         item = replies.Inbound(address, "Re: x", "yes please", "2026-09-01")
         # Simulate the crash-between-commits case: the inbound row already
