@@ -51,6 +51,11 @@ for role in $ROLES; do
     FAILED=1
     continue
   fi
+  if ! run audit "$role"; then
+    echo "SKIPPING $role: the list audit found a blocking problem"
+    FAILED=1
+    continue
+  fi
   run enrich "$role"
   run verify "$role"
   run queue  "$role"

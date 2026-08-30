@@ -43,6 +43,7 @@ comp. Fix what it names, then run it again.
     # or work through them offline in a spreadsheet:
     python3 -m outbound review head-of-operations --export review.csv
     python3 -m outbound review head-of-operations --import-file review.csv
+    python3 -m outbound audit  head-of-operations       # is this list ready
     python3 -m outbound enrich head-of-operations
     python3 -m outbound verify head-of-operations
     python3 -m outbound queue  head-of-operations

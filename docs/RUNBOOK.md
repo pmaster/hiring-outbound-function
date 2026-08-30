@@ -125,6 +125,25 @@ email data from a vendor.
 
        python3 -m outbound report
 
+## Before you commit to a list
+
+    python3 -m outbound audit head-of-operations
+
+Everything it checks is cheap to fix now and expensive to fix after the first
+hundred emails. It answers three questions: is the list big enough and how
+long will it take, is anything in it that should not be written to, and is the
+ICP doing what you meant.
+
+Two of its warnings are worth reading carefully:
+
+- **"85% of the list was rejected."** Either the search is too broad or a
+  disqualifier is too aggressive. Both waste your time, in opposite ways.
+- **"only 12% was rejected."** A filter that rejects almost nothing is not
+  filtering. The score is sorting the queue but not shaping it.
+
+`scripts/daily.sh` runs the audit for every live role first and skips any role
+with a blocking problem.
+
 ## Automating the safe half
 
 Steps 2, 3 and the booking sync are in one script:

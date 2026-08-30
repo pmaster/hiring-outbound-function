@@ -326,6 +326,25 @@ def cmd_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_audit(args: argparse.Namespace) -> int:
+    from .audit import audit_role
+
+    settings, roles, db = _bootstrap(args)
+    targets = [get_role(roles, args.role)] if args.role else [r for r in roles.values() if r.is_live]
+    blocking = 0
+    for role in sorted(targets, key=lambda r: r.key):
+        report = audit_role(db, settings, role)
+        print(report)
+        print()
+        blocking += len(report.blocking)
+    db.close()
+    if blocking:
+        print(f"{blocking} blocking problem(s). Fix them before sending.")
+        return 1
+    print("Nothing blocking.")
+    return 0
+
+
 def cmd_enrich(args: argparse.Namespace) -> int:
     settings, roles, db = _bootstrap(args)
     role = get_role(roles, args.role)
@@ -579,6 +598,10 @@ def build_parser() -> argparse.ArgumentParser:
     questions = sub.add_parser("questions", help="print the screener booking form questions")
     questions.add_argument("role")
     questions.set_defaults(func=cmd_questions)
+
+    aud = sub.add_parser("audit", help="check a list before committing to send it")
+    aud.add_argument("role", nargs="?")
+    aud.set_defaults(func=cmd_audit)
 
     show = sub.add_parser("show", help="everything about one candidate")
     show.add_argument("candidate_id", type=int)
