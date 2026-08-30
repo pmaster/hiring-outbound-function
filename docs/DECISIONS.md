@@ -243,18 +243,34 @@ exclude VP and above on the first pass.
 `head-of-operations` currently searches all three and lets the hand review
 sort it out. That is a hedge, not an answer.
 
-### 13. Which hiring philosophy governs screening. Peter.
+### 13. Which hiring philosophy governs screening. Peter has ruled.
 
-These cannot all be true at once:
+Peter's position (2026-08-30), settling this: high intelligence is necessary
+but not sufficient for most of these seats. A cognitive floor is a real gate;
+above it, intelligence stops sorting and conscientiousness, accountability and
+domain fit do the work.
 
-- One document says conscientiousness proxies matter, including GPA, school
-  and a traditional resume.
-- Another says interview charisma is a *negative* predictor and cognitive test
-  scores have no predictive power here.
-- CCAT is the live gate today.
+An earlier draft here read one source document too literally and concluded
+that "cognitive test scores have no predictive power." That was the build's
+reading, not Peter's, and it was drawn too fast. It is overruled. CCAT stays a
+live gate. What the source documents actually support, and what the scoring
+now follows:
 
-The scoring signals currently follow the second document, because it is the
-one backed by named outcomes at this company.
+- Intelligence proxies are necessary-but-not-sufficient positive signals, not
+  decisive ones. MBB and IB pedigree, a selective-program alum, a strong
+  analytics or quant track, and a passing CCAT clear the floor. They do not by
+  themselves make a hire.
+- Conscientiousness proxies matter and are weighted: GPA, school and a
+  traditional resume less for their prestige than for the organization and
+  professionalism they stand in for (Peter's words). Leadership roles (club
+  president, team captain) proxy accountability.
+- Domain interest, an operating seat over a pure-advisory one, and a real
+  track of shipping outweigh raw pedigree once the floor is cleared.
+
+The scoring reflects this: pedigree and cognitive-proxy signals carry real but
+bounded weight, an agency-only or advisory-only profile is penalized rather
+than rewarded, and no signal treats charisma as a negative. The one claim that
+was dropped is "cognitive scores do not predict" — they gate.
 
 ---
 

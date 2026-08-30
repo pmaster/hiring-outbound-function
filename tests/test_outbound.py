@@ -162,6 +162,35 @@ class TestScoring(unittest.TestCase):
         b = score_profile(role, weak, allowed_countries={"US"}).score
         self.assertGreater(a, b + 0.2)
 
+    def test_every_role_scores_the_intelligence_and_leadership_proxy(self):
+        """DECISIONS.md #13: intelligence is necessary but not sufficient, and
+        leadership roles proxy accountability. Every role must reward it, and
+        the reward must be a nudge, not decisive."""
+        for key, role in self.roles.items():
+            with self.subTest(role=key):
+                keys = [sig.key for sig in role.signals]
+                self.assertIn("selectivity_or_leadership", keys)
+                sig = next(s for s in role.signals if s.key == "selectivity_or_leadership")
+                self.assertGreater(sig.weight, 0)
+                self.assertLess(sig.weight, 0.12, "a proxy that decides a hire is too strong")
+
+    def test_a_leadership_marker_lifts_a_score_but_does_not_decide_it(self):
+        role = self.roles["chief-of-staff"]
+        base = normalize({
+            "fullName": "J D", "headline": "Chief of Staff at Acme",
+            "profileUrl": "https://linkedin.com/in/jd", "location": "Austin, TX",
+            "summary": "Chief of Staff. Ex-McKinsey associate.",
+        })
+        lifted = normalize({
+            "fullName": "J D", "headline": "Chief of Staff at Acme",
+            "profileUrl": "https://linkedin.com/in/jd", "location": "Austin, TX",
+            "summary": "Chief of Staff. Ex-McKinsey associate. Team captain, summa cum laude.",
+        })
+        low = score_profile(role, base, allowed_countries={"US"}).score
+        high = score_profile(role, lifted, allowed_countries={"US"}).score
+        self.assertGreater(high, low)
+        self.assertLess(high - low, 0.12, "the proxy must be a nudge, not the whole score")
+
     def test_evidence_quotes_the_profile_text_that_fired_a_signal(self):
         from outbound.score import evidence_for, top_evidence
 

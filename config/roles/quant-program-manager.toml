@@ -112,6 +112,16 @@ field    = "longest_tenure_years"
 min      = 2.0
 soft_min = 1.0
 
+[[signal]]
+key      = "selectivity_or_leadership"
+weight   = 0.05
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["valedictorian", "summa cum laude", "magna cum laude", "cum laude", "dean'?s list", "president'?s list", "national merit", "phi beta kappa", "\\bhonou?rs (program|college|thesis)\\b", "rhodes scholar", "fulbright", "team captain", "\\bcaptain of\\b", "club president", "student body president", "founding president", "\\bNCAA\\b", "division (I|1)\\b", "math olympiad", "\\bUSAMO\\b", "putnam", "4\\.0 GPA", "GPA[: ]+3\\.[89]"]
+# Peter's thesis (DECISIONS.md #13): intelligence is necessary but not
+# sufficient, and leadership roles (club president, team captain) proxy
+# accountability. A modest positive that nudges rank; it never makes a hire.
+
 [[disqualifier]]
 key    = "no_linkedin"
 kind   = "missing"
