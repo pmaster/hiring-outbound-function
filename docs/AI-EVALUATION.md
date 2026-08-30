@@ -19,7 +19,7 @@ where that already matches and where it did not.
 | One email: intro, JD link, screener link | Was a three-step sequence. Now `sending.max_steps = 1` makes it one email. | Closed. |
 | Send under a smart daily cap | Daily cap, shared-domain cap, warm-up ramp, bounce circuit breaker. | None, but see the deliverability note. |
 | 200+ a day | The caps are config. The number is not the constraint; the domain is. | Open. See "Volume". |
-| Interview everyone, or re-check and cancel | `bookings triage`, then `bookings decide <id> cancel --reason "..."` sends the apology. | None. The re-check is still by hand. |
+| Interview everyone, or re-check and cancel | `bookings triage` re-reads each booker against the role (with the AI evaluator when it is on) and flags the likely non-fits; `bookings decide <id> cancel` sends the apology. | Closed. |
 
 The one real disagreement was screening. The build assumed a person writes one
 specific line per candidate. You want the model to do that reading. Both now
@@ -100,10 +100,15 @@ in the country. Pick the shape per seat.
 
 ## The false-positive cancel
 
-When a booking comes in from someone the screen or the list got wrong, re-check
-the profile, then:
+When a booking comes in from someone the send got wrong, `bookings triage`
+re-reads their profile against the role and suggests confirm or cancel. With
+the AI evaluator on, its verdict drives the suggestion: a weak fit or a hard
+non-fit reads as cancel, a strong one as confirm, and it prints the reason.
+Then:
 
-    python3 -m outbound bookings decide <id> cancel --reason "..."
+    python3 -m outbound bookings triage            # see the verdicts
+    python3 -m outbound bookings decide <id> cancel --reason "..." --live
 
-That sends the apology and frees the slot. The re-check is by hand today. An AI
-re-check of a booker is a small addition on the same evaluator, if you want it.
+The cancel sends the apology and frees the slot. `bookings triage --auto --live`
+acts on every suggestion at once, but read them first: a cancel is a real
+message to a real person.

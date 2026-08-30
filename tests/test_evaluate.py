@@ -266,5 +266,64 @@ class TestAnthropicParsing(unittest.TestCase):
         self.assertEqual(v["personal_note"], "You ran ops at Kestrel.")
 
 
+class TestBookingRecheck(unittest.TestCase):
+    """The false-positive catch. With an evaluator configured, the AI verdict
+    drives cancel/confirm."""
+
+    def setUp(self):
+        self.settings, self.roles = _settings(provider="dryrun")
+        self.dir = tempfile.TemporaryDirectory()
+        self.db = open_db(Path(self.dir.name) / "t.db")
+        self.role = self.roles["head-of-operations"]
+
+    def tearDown(self):
+        self.db.close()
+        self.dir.cleanup()
+
+    def _book(self, score: float) -> int:
+        cid, _ = self.db.upsert_candidate(
+            self.role.key,
+            {"linkedin_url": "linkedin.com/in/book", "full_name": "Booker One",
+             "title": "Head of Operations", "company": "Acme"},
+        )
+        self.db.execute("UPDATE candidates SET score = ? WHERE id = ?", (score, cid))
+        self.db.set_stage(cid, "booked")
+        self.db.add_email(cid, "booker@example.com", primary=True)
+        self.db.execute(
+            "INSERT INTO bookings (candidate_id, role_key, provider, provider_id, "
+            "attendee_name, attendee_email, start_at, end_at, answers_json, status, created_at) "
+            "VALUES (?, ?, 'dryrun', 'p1', 'Booker One', 'booker@example.com', "
+            "'2026-09-10T15:00:00+00:00', '2026-09-10T15:30:00+00:00', '{}', 'booked', ?)",
+            (cid, self.role.key, "2026-09-01T00:00:00+00:00"),
+        )
+        return cid
+
+    def test_a_weak_ai_verdict_suggests_cancel(self):
+        from outbound import bookings
+        self._book(score=0.20)  # dryrun evaluator maps a low score to "weak"
+        items = bookings.recheck(self.db, self.settings, self.roles)
+        self.assertEqual(len(items), 1)
+        self.assertIsNotNone(items[0]["ai"])
+        self.assertEqual(items[0]["ai"]["verdict"], "weak")
+        self.assertEqual(items[0]["suggest"], "cancel")
+        self.assertTrue(items[0]["reason"])
+
+    def test_a_strong_ai_verdict_suggests_confirm(self):
+        from outbound import bookings
+        self._book(score=0.90)  # a high score maps to "strong"
+        items = bookings.recheck(self.db, self.settings, self.roles)
+        self.assertEqual(items[0]["ai"]["verdict"], "strong")
+        self.assertEqual(items[0]["suggest"], "confirm")
+
+    def test_with_no_evaluator_the_score_still_decides(self):
+        from outbound import bookings
+        settings, roles = _settings(provider="none")
+        # A low score, no AI: the heuristic threshold drives the cancel.
+        self._book(score=0.20)
+        items = bookings.recheck(self.db, settings, roles)
+        self.assertIsNone(items[0]["ai"])
+        self.assertEqual(items[0]["suggest"], "cancel")
+
+
 if __name__ == "__main__":
     unittest.main()

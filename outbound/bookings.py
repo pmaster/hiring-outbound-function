@@ -86,9 +86,25 @@ def sync(db: Database, settings: Settings, roles: dict[str, Role]) -> StepResult
 def recheck(
     db: Database, settings: Settings, roles: dict[str, Role], booking_id: int | None = None
 ) -> list[dict[str, Any]]:
-    """Re-score every booked person against the role ICP. Returns a worklist."""
+    """Re-check every booked person against the role. Returns a worklist.
+
+    This is the false-positive catch: someone the send got wrong books a call,
+    and re-reading the profile against the role finds them before the call is
+    wasted. The heuristic score always runs. When an AI evaluator is
+    configured (`evaluation.provider` is not "none"), it also reads the profile
+    and its verdict drives the suggestion, because it reads the whole profile
+    the way a person re-checking a LinkedIn would.
+    """
     allow = {str(c).upper() for c in settings.get("compliance.allow_countries", []) or []}
     block = {str(c).upper() for c in settings.get("compliance.block_countries", []) or []}
+    threshold = float(settings.get("booking.recheck_min_score", 0.55))
+
+    eval_name = str(settings.get("evaluation.provider", "none") or "none")
+    evaluator = (
+        provider_registry.build("evaluate", eval_name, settings)
+        if eval_name not in ("none", "") else None
+    )
+
     where = "WHERE status = 'booked'"
     params: list[Any] = []
     if booking_id:
@@ -101,6 +117,8 @@ def recheck(
         )
         role = roles.get(booking["role_key"] or "")
         score = None
+        ai = None
+        reason = None
         if candidate and role:
             profile = dict(candidate)
             try:
@@ -115,21 +133,49 @@ def recheck(
                 allowed_countries=allow or None,
             )
             score = outcome.score
+            if evaluator is not None:
+                from .evaluate import build_brief
+                from .score import top_evidence
+
+                profile["_evidence"] = top_evidence(role, profile)
+                try:
+                    ai = evaluator.evaluate(build_brief(role), profile)
+                except Exception as exc:  # noqa: BLE001  a bad re-check must not stop the list
+                    ai = None
+                    reason = f"AI re-check failed: {exc}"
             db.execute(
                 "UPDATE bookings SET recheck_score = ? WHERE id = ?", (score, booking["id"])
             )
-        threshold = float(settings.get("booking.recheck_min_score", 0.55))
+
+        # The AI verdict decides when there is one; otherwise the score does.
+        if ai is not None:
+            if ai.get("disqualify") or ai.get("verdict") == "weak":
+                suggest = "cancel"
+                reason = (
+                    ai.get("disqualify_reason")
+                    or "; ".join(str(r) for r in (ai.get("reasons") or [])[:2])
+                    or f"AI re-check: weak fit {ai.get('fit', 0):.2f}"
+                )
+            elif ai.get("verdict") == "strong":
+                suggest = "confirm"
+            else:
+                suggest = "look"
+        elif score is not None:
+            suggest = "cancel" if score < threshold else "confirm"
+            if suggest == "cancel":
+                reason = f"re-check score {score:.2f} below {threshold:.2f}"
+        else:
+            suggest = "look"
+
         out.append(
             {
                 "booking": booking,
                 "candidate": candidate,
                 "role": role,
                 "score": score,
-                "suggest": (
-                    "cancel"
-                    if (score is not None and score < threshold)
-                    else ("confirm" if score is not None else "look")
-                ),
+                "ai": ai,
+                "suggest": suggest,
+                "reason": reason,
                 "linkedin": (candidate or {}).get("linkedin_url"),
                 "answers": json.loads(booking.get("answers_json") or "{}"),
             }
@@ -267,11 +313,15 @@ def triage(
         if not auto:
             continue
         if item["suggest"] == "cancel":
+            score = item.get("score")
+            reason = item.get("reason") or (
+                f"re-check score {score:.2f} below threshold"
+                if score is not None else "re-check found a non-fit"
+            )
             try:
                 sub = decide(
                     db, settings, roles, int(booking["id"]), "cancel",
-                    reason=f"re-check score {item['score']:.2f} below threshold",
-                    live=live, force_late=force_late,
+                    reason=reason, live=live, force_late=force_late,
                 )
             except OutboundError as exc:
                 result.notes.append(f"booking {booking['id']}: {exc}")

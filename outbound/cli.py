@@ -438,12 +438,16 @@ def cmd_bookings(args: argparse.Namespace) -> int:
         for item in items:
             booking = item["booking"]
             score = item["score"]
+            ai = item.get("ai")
+            ai_str = f"  ai={ai['verdict']}/{ai['fit']:.2f}" if ai else ""
             print(
                 f"[{booking['id']:>4}] {booking.get('start_at') or '?':25} "
                 f"{booking.get('attendee_name') or '?':22} "
-                f"score={'n/a' if score is None else f'{score:.2f}'}  "
+                f"score={'n/a' if score is None else f'{score:.2f}'}{ai_str}  "
                 f"suggest={item['suggest']}"
             )
+            if item.get("reason"):
+                print(f"       why: {truncate(str(item['reason']), 74)}")
             if item["linkedin"]:
                 print(f"       {item['linkedin']}")
             for question, answer in (item["answers"] or {}).items():
