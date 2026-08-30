@@ -111,13 +111,20 @@ this database is what the report and the stage logic read.
 
 ## Roles shipped
 
-| Key | Seats | Status |
-|---|---|---|
-| `head-of-operations` | 1 | live |
-| `engineer` | 2 | live |
-| `ops-generalist` | 4 | live |
-| `controller` | 1 | draft |
-| `brand-and-funnel` | 1 | draft |
+Nine seats, built from the source documents. `docs/SOURCE-BRIEF.md` traces
+every criterion to the file it came from.
+
+| Key | Seats | Status | Why |
+|---|---|---|---|
+| `head-of-operations` | 1 | live | Sought 1.5 to 2 years, four failed attempts. Also covers Director of Ops and VP Ops, because which title is hired is undecided. |
+| `engineer` | 2 | live | About twenty initiatives on the seat and one person in it. |
+| `ops-generalist` | 4 | live | Four departments with no head. |
+| `chief-of-staff` | 1 | draft | One of the three Peter calls most important. Comp conflicts with itself in the source. |
+| `quant-program-manager` | 1 | draft | The third of those three. |
+| `fulfillment-specialist` | 15 | draft | Called the number one business priority. Metro locked, and the live gate is a test people are failing. Read the file before making it live. |
+| `business-systems-lead` | 1 | draft | Top five priority. No comp in any source document. |
+| `controller` | 1 | draft | The heaviest vacancy on the issues register. |
+| `brand-and-funnel` | 1 | draft | The largest block of Peter's time a single hire removes. |
 
 Draft roles load and score but refuse to send. Set `status = "live"` in the
 role file once the comp and the job description are settled.
