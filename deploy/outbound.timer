@@ -1,0 +1,14 @@
+# Fire the daily run on weekday mornings, New York time. The app's send-window
+# gate (sending.send_window in settings.toml) is the real control, so the exact
+# minute here does not matter much; it just has to land in the morning.
+
+[Unit]
+Description=Run the outbound recruiting pipeline on weekday mornings
+
+[Timer]
+OnCalendar=Mon-Fri 08:40 America/New_York
+# If the box was asleep at the scheduled time, run once when it wakes.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

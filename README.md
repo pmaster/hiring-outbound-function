@@ -115,6 +115,7 @@ read.
 | `site/` | The built careers pages. Generated. Upload it to the recruiting domain. |
 | `sample/` | Sample profiles, sample bookings, and demo settings. |
 | `docs/` | Setup, runbook, vendors, compliance, opsec, open decisions. |
+| `deploy/` | The kit to run it on a small box on a timer. |
 | `data/` | The database and the outbox. Gitignored. It holds real people. |
 
 ## Roles shipped
@@ -168,6 +169,9 @@ Comp does not live in the role files, because those are committed. Put it in
 
 ## Read next
 
+- `docs/GO-LIVE.md` — **how to get it running for real:** the plain-English
+  path from code to a robot that runs itself. Read this if devops is not
+  your thing.
 - `docs/FIRST-WEEK.md` — **start here.** An ordered two week plan.
 - `docs/SETUP.md` — the domain, the mailboxes, the DNS records, the warm up.
 - `docs/RUNBOOK.md` — what to do each day, and who does it.

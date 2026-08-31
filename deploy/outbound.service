@@ -1,0 +1,19 @@
+# systemd service: one run of the outbound recruiting pipeline.
+# Paired with outbound.timer, which fires it on weekday mornings.
+# Install: see deploy/README.md. The app reads .env and config/settings.toml
+# from WorkingDirectory, so nothing secret goes in this file.
+
+[Unit]
+Description=Sunbird outbound recruiting: one daily run
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=outbound
+Group=outbound
+WorkingDirectory=/opt/outbound
+ExecStart=/opt/outbound/scripts/daily.sh --live
+# The app's own send-window and warm-up gates decide what actually sends.
+# A run that has nothing to do exits cleanly.
+Nice=10
