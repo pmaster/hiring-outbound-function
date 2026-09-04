@@ -44,5 +44,6 @@ this code implements.
   in the settings. `sunbirdsystems.com` remains a warned domain because the
   campus channel depends on it.
 - Never connect a real LinkedIn account to a scraper.
-- US only, until someone with authority changes `compliance.allow_countries`
-  and can say why. See `docs/COMPLIANCE.md`.
+- Geographic blocking is optional and off by default. Peter removed the
+  inherited US-only restriction on 2026-09-04. Role searches, not a global
+  country allow list, define the intended candidate markets.

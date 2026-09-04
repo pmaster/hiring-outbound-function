@@ -1,18 +1,21 @@
 # Compliance
 
-Not legal advice. This is the operating rule set the code enforces. Take the
-Canada and EU questions to counsel before you change anything here.
+Not legal advice. This file records optional controls and the small set of
+low-friction protections that remain enabled.
 
 ## The short version
 
-Cold email to a work address is lawful in the United States, with conditions.
-It is not workable in Canada or the EU. So the machine sends to the United
-States only, and everywhere else goes through job boards.
+There is no global country restriction. Peter removed the inherited US-only
+default on September 4, 2026. Each role's searches determine its candidate
+markets. The country allow/block mechanism remains available but is off by
+default.
 
-The code enforces this. `compliance.allow_countries` is `["US"]` and
-`compliance.enforce_geo_block` is on. A candidate whose country cannot be
-determined is refused, not assumed to be American. Guessing wrong is the
-expensive direction.
+The system still includes an unsubscribe link, a postal address and permanent
+suppression after an opt-out. These cost essentially nothing and are useful
+deliverability and candidate-experience controls regardless of jurisdiction.
+
+The country-specific discussion below is retained as background for a later
+review. It is not a current launch gate.
 
 ## United States: CAN-SPAM
 
@@ -87,8 +90,8 @@ You are holding personal data about people who did not ask you to.
   `reveal_personal_emails` to false and the RocketReach adapter drops
   addresses typed as personal.
 
-## Changing the gate
+## Enabling a country gate later
 
-Anyone can edit `compliance.allow_countries`. Before you do, write down the
-answer to one question: what makes the message lawful in that country? If the
-answer is "probably fine", the answer is no.
+Set `compliance.enforce_geo_block = true`, fill `allow_countries`, and optionally
+fill `block_countries`. When enforcement is off, an empty allow list does not
+block sending.

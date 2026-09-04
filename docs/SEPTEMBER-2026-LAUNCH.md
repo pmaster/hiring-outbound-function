@@ -39,7 +39,7 @@ Working definition:
 The dedicated role file is `config/roles/quant-operations-partner.toml`. Do not
 reuse `ops-generalist` or `quant-program-manager`; both are US roles at
 materially different pay and scope. Keep the new role in `draft` until its
-Workable job, Ukraine privacy review and sending infrastructure are ready.
+Workable job and sending infrastructure are ready.
 
 ## Use this stack
 
@@ -106,9 +106,14 @@ returns `NXDOMAIN` for both `_dmarc.viewlineventures.com` and
 go-live blockers, not checklist hygiene.
 
 1. Define the Helen role. Keep it draft.
-2. Create the dedicated recruiting mailbox.
-3. Fix DKIM and DMARC on the sending domain.
-4. Start the mailbox warm-up.
+2. Buy 20 pre-warmed sending accounts across separate recruiting domains in
+   Instantly. This avoids waiting on the main domain and minimizes setup work.
+   Start each at five messages a day and move toward 20 to 25 per day as its
+   health stays strong. Keep replies routed to a mailbox the recruiting owner
+   reads.
+3. Fix DKIM and DMARC on the main domain separately. It is still worth fixing,
+   but it no longer blocks the pilot if the pre-warmed accounts are fully
+   authenticated.
 5. Create one Workable job and record its shortcode and `Sourced` stage.
 6. Keep Sunbird's existing interview and one-hour work simulation as the two
    selection gates. Copy the simulation instructions into Workable; do not
@@ -116,14 +121,31 @@ go-live blockers, not checklist hygiene.
 7. Connect the positive-reply handoff to Workable. The preferred path is the
    Workable API with `sourced = true`; a daily ATS CSV import is acceptable for
    the pilot.
-8. Build a 50-person Ukraine pilot list, beginning with Lviv and expanding only
-   if the profile quality is weak.
+8. Build a 2,000-person Ukraine list, beginning with Lviv and then expanding
+   nationally. Let the scoring and evaluation system rank it. A recruiting
+   owner should spot-check 25 top profiles and 25 rejects, not hand-review all
+   2,000.
 9. Run Prospeo and MillionVerifier. Measure the match rate and bounce risk.
-10. Send five emails per day for the first three days, only after the Ukraine
-    privacy basis and candidate notice have been reviewed.
-11. Read every reply. Stop if reply rate is under 3% after 60 sends or bounce
-    rate is over 3%.
-12. Increase the list only after the pilot produces qualified work samples.
+10. Plan on a 1.5 to 2 percent booking rate per unique delivered prospect. At
+    2,000 prospects, that means 30 to 40 bookings. Five percent is excellent;
+    one percent is a plausible downside.
+11. Have the delegated recruiting owner read every reply. Review performance
+    after 500 delivered prospects, but stop immediately if bounce rate exceeds
+    3 percent.
+12. Keep scaling while the booked candidates are reaching the work simulation.
+    Do not wait for all 2,000 prospects to finish before opening the next list.
+
+For Instantly pre-warmed accounts, use the account-level ramp in Instantly and
+set the repository warm-up ramp to empty so two systems do not throttle the
+same mailboxes:
+
+    [sending]
+    per_mailbox_per_day = 25
+    mailboxes = 20
+
+    [warmup]
+    require_warmup_done = false
+    ramp = []
 
 ## Do not automate these decisions
 

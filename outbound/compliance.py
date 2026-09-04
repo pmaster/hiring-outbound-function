@@ -174,7 +174,7 @@ def preflight(settings: Settings, role: Role | None = None) -> list[Problem]:
         problems.append(Problem("no_screener", "booking.screener_url is not set"))
 
     allow, _ = country_sets(settings)
-    if not allow:
+    if settings.get("compliance.enforce_geo_block", True) and not allow:
         problems.append(
             Problem("no_allow_list", "compliance.allow_countries is empty, so nothing can send")
         )

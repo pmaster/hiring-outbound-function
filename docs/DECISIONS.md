@@ -397,7 +397,7 @@ Where a fact was missing, the code marks it rather than inventing it.
 
 | Assumption | Where | How to change it |
 |---|---|---|
-| US only sending | `compliance.allow_countries` | `COMPLIANCE.md`. Take Canada and the EU to counsel first. |
+| No global country gate | `compliance.enforce_geo_block = false` | Peter removed the inherited US-only restriction on 2026-09-04. Role searches define the intended markets. |
 | Comp goes in email one | `role.comp_in_email` | Set false in the role file if you disagree |
 | Three emails, days 0, 4 and 8 | `sending.step_gap_days` | Settings |
 | 18 a day per mailbox, two mailboxes, shared across roles | `sending.*` | Settings |

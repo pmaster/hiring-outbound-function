@@ -70,14 +70,12 @@ cancel_lead_hours   = 12
 recheck_min_score   = 0.55
 
 [compliance]
-# Countries we will cold email. US only by default.
-# CASL (Canada) requires consent. GDPR plus the Polish electronic services
-# act make EU cold email to individuals a bad idea. See docs/COMPLIANCE.md.
-allow_countries     = ["US"]
-block_countries     = ["CA", "PL", "DE", "FR", "ES", "IT", "NL", "IE", "PT", "SE", "DK", "FI", "NO", "AT", "BE", "CZ", "GR", "HU", "RO", "SK", "SI", "BG", "HR", "EE", "LV", "LT", "LU", "MT", "CY", "GB"]
-# Hard block. The pipeline refuses to queue a person in a blocked country
-# even if a role config allows it.
-enforce_geo_block   = true
+# Optional country gate. Peter removed the inherited US-only restriction on
+# 2026-09-04. Leave enforcement off unless the business later chooses a
+# country policy. Role searches still determine where candidates are sourced.
+allow_countries     = []
+block_countries     = []
+enforce_geo_block   = false
 require_unsubscribe = true
 require_postal      = true
 

@@ -334,6 +334,16 @@ class TestCompliance(unittest.TestCase):
         self.assertFalse(geo_allowed(self.settings, "CA")[0])
         self.assertFalse(geo_allowed(self.settings, "")[0])
 
+    def test_geo_gate_can_be_disabled_without_an_allow_list(self):
+        raw = json.loads(json.dumps(self.settings.raw))
+        raw["compliance"]["enforce_geo_block"] = False
+        raw["compliance"]["allow_countries"] = []
+        raw["compliance"]["block_countries"] = []
+        settings = Settings(raw=raw)
+        self.assertTrue(geo_allowed(settings, "UA")[0])
+        self.assertTrue(geo_allowed(settings, "")[0])
+        self.assertNotIn("no_allow_list", {p.code for p in preflight(settings)})
+
     def test_message_needs_unsubscribe_and_postal(self):
         problems = message_problems(self.settings, "hello there")
         codes = {p.code for p in problems}

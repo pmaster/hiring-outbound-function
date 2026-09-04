@@ -3,8 +3,8 @@
 # This is intentionally broad. Partners rotate through pairing with quants and
 # support a pod or the general team asynchronously. The pilot is meant to show
 # which mix of accountability, QA, operations and administrative work has the
-# highest leverage. Keep status draft until the Workable job, Ukraine privacy
-# review and sending infrastructure are ready.
+# highest leverage. Keep status draft until the Workable job and sending
+# infrastructure are ready.
 
 [role]
 key            = "quant-operations-partner"
@@ -19,8 +19,8 @@ jd_url         = "https://viewlineventures.com/roles/quant-operations-partner"
 one_liner      = "Help a small trading team produce more, make fewer preventable mistakes and keep important work moving."
 sender         = "recruiting"
 template_dir   = "quant-operations-partner"
-daily_cap      = 5
-target_list_size = 250
+daily_cap      = 400
+target_list_size = 2000
 
 [icp]
 titles = [
@@ -165,4 +165,4 @@ geo       = ["Ukraine"]
 headcount = ["11-50", "51-200", "201-500", "501-1000", "1001-5000"]
 seniority = ["Associate", "Mid-Senior level"]
 keywords  = "(QA OR process OR workflow OR client OR administrative) NOT (warehouse OR manufacturing OR retail)"
-target    = 200
+target    = 1950
