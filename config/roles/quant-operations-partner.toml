@@ -1,0 +1,168 @@
+# Pilot role defined from Peter's September 4 operations discussion.
+#
+# This is intentionally broad. Partners rotate through pairing with quants and
+# support a pod or the general team asynchronously. The pilot is meant to show
+# which mix of accountability, QA, operations and administrative work has the
+# highest leverage. Keep status draft until the Workable job, Ukraine privacy
+# review and sending infrastructure are ready.
+
+[role]
+key            = "quant-operations-partner"
+title          = "Quant Operations Partner"
+status         = "draft"
+seats          = 10
+seniority      = "mid"
+employment     = "contractor, full time, remote"
+comp           = "$3,000 per month"
+comp_in_email  = true
+jd_url         = "https://viewlineventures.com/roles/quant-operations-partner"
+one_liner      = "Help a small trading team produce more, make fewer preventable mistakes and keep important work moving."
+sender         = "recruiting"
+template_dir   = "quant-operations-partner"
+daily_cap      = 5
+target_list_size = 250
+
+[icp]
+titles = [
+  "Operations Specialist", "Business Operations Specialist",
+  "Operations Coordinator", "Project Coordinator", "Project Manager",
+  "Quality Assurance Analyst", "Quality Assurance Specialist",
+  "Process Analyst", "Client Operations Specialist",
+  "Customer Operations Specialist", "Executive Assistant",
+  "Trading Operations Analyst", "Payments Operations Specialist",
+]
+title_excludes = [
+  "Warehouse", "Manufacturing", "Retail", "Restaurant", "Clinical",
+  "Nurse", "Driver", "Recruiter", "Sales Representative", "Intern",
+]
+seniority                 = ["associate", "mid", "senior"]
+company_headcount         = [10, 5000]
+geo                       = ["Ukraine"]
+geo_exclude               = ["Canada", "European Union", "Poland"]
+min_years_experience      = 2
+min_months_in_role        = 9
+max_jobs_last_3_years     = 4
+min_longest_tenure_years  = 1
+timezone_rule = "some regular overlap with Eastern Time; most support may be asynchronous"
+
+keywords_any = [
+  "quality assurance", "QA", "SOP", "process", "workflow", "audit",
+  "reconciliation", "documentation", "follow-up", "client operations",
+  "project coordination", "administrative support", "remote",
+]
+
+[[signal]]
+key    = "title_match"
+weight = 0.18
+kind   = "any_of"
+field  = "title"
+values = [
+  "operations specialist", "business operations specialist",
+  "operations coordinator", "project coordinator", "project manager",
+  "quality assurance analyst", "quality assurance specialist",
+  "process analyst", "client operations specialist",
+  "customer operations specialist", "executive assistant",
+  "trading operations analyst", "payments operations specialist",
+]
+
+[[signal]]
+key      = "quality_and_error_prevention"
+weight   = 0.23
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["quality assurance", "\\bQA\\b", "audit", "accuracy", "error rate", "prevented", "caught", "reconcil", "compliance check", "quality control"]
+
+[[signal]]
+key      = "owns_follow_through"
+weight   = 0.20
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["follow[- ]?up", "project coordination", "deadline", "task management", "operations support", "administrative support", "calendar management", "closed the loop", "escalat"]
+
+[[signal]]
+key      = "improved_output_or_process"
+weight   = 0.18
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["increased .{0,20}\\d+%", "improved .{0,20}\\d+%", "reduced .{0,20}\\d+%", "throughput", "productivity", "cycle time", "KPI", "scorecard", "process improvement"]
+
+[[signal]]
+key      = "client_rapport"
+weight   = 0.12
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["client relationship", "customer relationship", "client success", "customer success", "stakeholder management", "client communication", "account management"]
+
+[[signal]]
+key      = "remote_async_work"
+weight   = 0.08
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["remote", "distributed", "asynchronous", "cross-functional", "international team", "multiple time zones"]
+
+[[signal]]
+key      = "tenure_depth"
+weight   = 0.07
+kind     = "min_value"
+field    = "longest_tenure_years"
+min      = 2.0
+soft_min = 1.0
+
+[[signal]]
+key      = "not_a_job_hopper"
+weight   = 0.05
+kind     = "max_value"
+field    = "jobs_last_3_years"
+max      = 4
+soft_max = 6
+
+[[signal]]
+key      = "selectivity_or_leadership"
+weight   = 0.05
+kind     = "regex_any"
+field    = "profile_text"
+patterns = ["valedictorian", "summa cum laude", "magna cum laude", "cum laude", "dean'?s list", "honou?rs (program|college|thesis)", "team captain", "club president", "student body president", "math olympiad", "4\\.0 GPA", "GPA[: ]+3\\.[89]"]
+
+[[disqualifier]]
+key    = "no_linkedin"
+kind   = "missing"
+field  = "linkedin_url"
+reason = "No profile to hand check."
+
+[[disqualifier]]
+key    = "blocked_geo"
+kind   = "country_blocked"
+field  = "country"
+reason = "The country has not been approved for cold recruiting outreach."
+
+[[disqualifier]]
+key    = "suppressed"
+kind   = "suppressed"
+field  = "linkedin_url"
+reason = "On the suppression list."
+
+[booking]
+questions = [
+  "Describe a time your follow-through helped another person produce more or avoid a mistake.",
+  "What quality or operating metric have you improved, and how did you improve it?",
+  "How much regular overlap can you provide with Eastern Time?",
+  "When could you start?",
+]
+
+[[search]]
+name      = "lviv-operations-and-qa-pilot"
+titles    = ["Operations Specialist", "Operations Coordinator", "Project Coordinator", "Quality Assurance Analyst", "Client Operations Specialist"]
+geo       = ["Lviv, Ukraine"]
+headcount = ["11-50", "51-200", "201-500", "501-1000", "1001-5000"]
+seniority = ["Associate", "Mid-Senior level"]
+keywords  = "(QA OR process OR operations OR follow-up OR documentation) NOT (warehouse OR manufacturing OR retail)"
+target    = 50
+
+[[search]]
+name      = "ukraine-operations-expansion"
+titles    = ["Operations Specialist", "Project Coordinator", "Quality Assurance Specialist", "Process Analyst", "Executive Assistant"]
+geo       = ["Ukraine"]
+headcount = ["11-50", "51-200", "201-500", "501-1000", "1001-5000"]
+seniority = ["Associate", "Mid-Senior level"]
+keywords  = "(QA OR process OR workflow OR client OR administrative) NOT (warehouse OR manufacturing OR retail)"
+target    = 200

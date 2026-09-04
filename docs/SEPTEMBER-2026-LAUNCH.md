@@ -25,19 +25,21 @@ Working definition:
 - Core job: work alongside a quant, keep the day moving, close verification and
   cash-out follow-ups, notice blockers early, maintain the operating record and
   compare methods with other operations partners.
+- Operating shape: partners rotate through direct pairing with quants while
+  asynchronously supporting a pod or the general team. The exact remit is
+  intentionally expected to change during the pilot.
+- Hours: some regular Eastern-time overlap is required, but a full US schedule
+  is not.
+- Engagement: contractor. This is the default for all Sunbird roles.
+- Pilot scorecard: points per quant per working hour, points per client, focused
+  quant work hours, client rapport and preventable mistakes. Compare each
+  measure with that quant's pre-pairing baseline rather than setting arbitrary
+  absolute targets before the pilot produces data.
 
-Three operating choices remain before the role file can be made live:
-
-1. Decide whether one partner supports one quant or a small pod, and who manages
-   the partners.
-2. Set the required Eastern-time overlap and confirm contractor versus employee.
-3. Write the first-30-day scorecard. Recommended starting measures are quant
-   focused hours, aged follow-ups closed, preventable execution errors and
-   weekly output versus that quant's pre-pairing baseline.
-
-Use `docs/ROLE-INTAKE.md` to record those answers. Add a separate role file;
-do not reuse `ops-generalist` or `quant-program-manager`. Both are US roles at
-materially different pay and scope.
+The dedicated role file is `config/roles/quant-operations-partner.toml`. Do not
+reuse `ops-generalist` or `quant-program-manager`; both are US roles at
+materially different pay and scope. Keep the new role in `draft` until its
+Workable job, Ukraine privacy review and sending infrastructure are ready.
 
 ## Use this stack
 
