@@ -61,7 +61,8 @@ class ProviderTestCase(unittest.TestCase):
 
     KEYS = {
         "APIFY_TOKEN": "tok", "APOLLO_API_KEY": "tok", "ROCKETREACH_API_KEY": "tok",
-        "FINDYMAIL_API_KEY": "tok", "MILLIONVERIFIER_API_KEY": "tok",
+        "FINDYMAIL_API_KEY": "tok", "PROSPEO_API_KEY": "tok",
+        "MILLIONVERIFIER_API_KEY": "tok",
         "NEVERBOUNCE_API_KEY": "tok", "INSTANTLY_API_KEY": "tok",
         "SMARTLEAD_API_KEY": "tok", "CALCOM_API_KEY": "tok", "CALENDLY_TOKEN": "tok",
         "ZEROBOUNCE_API_KEY": "tok",
@@ -221,6 +222,70 @@ class TestEnrichAdapters(ProviderTestCase):
     def test_findymail_returns_nothing_when_it_has_neither_input(self):
         adapter = providers.build("enrich", "findymail", self.settings)
         self.assertEqual(adapter.find_email({"full_name": "A B"}), [])
+
+    def test_prospeo_enriches_from_a_linkedin_url(self):
+        recorder = Recorder(
+            {
+                "error": False,
+                "person": {
+                    "email": {
+                        "status": "VERIFIED",
+                        "revealed": True,
+                        "email": "a.b@acme.com",
+                    }
+                },
+            }
+        )
+        with mock.patch.object(httpjson, "post", recorder):
+            adapter = providers.build("enrich", "prospeo", self.settings)
+            out = adapter.find_email({"linkedin_url": "https://linkedin.com/in/ab"})
+        self.assertEqual(out[0]["address"], "a.b@acme.com")
+        self.assertEqual(out[0]["source"], "prospeo")
+        self.assertEqual(recorder.last["headers"]["X-KEY"], "tok")
+        self.assertTrue(recorder.last["url"].endswith("/enrich-person"))
+        self.assertEqual(
+            recorder.last["body"]["data"],
+            {"linkedin_url": "https://linkedin.com/in/ab"},
+        )
+        self.assertFalse(recorder.last["body"]["enrich_mobile"])
+
+    def test_prospeo_falls_back_to_name_and_company(self):
+        recorder = Recorder(
+            {"error": False, "person": {"email": {"email": "a@acme.com"}}}
+        )
+        with mock.patch.object(httpjson, "post", recorder):
+            adapter = providers.build("enrich", "prospeo", self.settings)
+            adapter.find_email(
+                {"full_name": "A B", "company": "Acme", "company_domain": "acme.com"}
+            )
+        self.assertEqual(
+            recorder.last["body"]["data"],
+            {"full_name": "A B", "company_name": "Acme", "company_website": "acme.com"},
+        )
+
+    def test_prospeo_treats_its_400_no_match_as_a_miss(self):
+        failure = httpjson.HttpError(
+            400,
+            "https://api.prospeo.io/enrich-person",
+            '{"error":true,"error_code":"NO_MATCH"}',
+        )
+        with mock.patch.object(httpjson, "post", side_effect=failure):
+            adapter = providers.build("enrich", "prospeo", self.settings)
+            self.assertEqual(
+                adapter.find_email({"linkedin_url": "https://linkedin.com/in/no-match"}),
+                [],
+            )
+
+    def test_prospeo_drops_a_masked_address(self):
+        recorder = Recorder(
+            {"error": False, "person": {"email": {"email": "a.*****@acme.com"}}}
+        )
+        with mock.patch.object(httpjson, "post", recorder):
+            adapter = providers.build("enrich", "prospeo", self.settings)
+            self.assertEqual(
+                adapter.find_email({"linkedin_url": "https://linkedin.com/in/ab"}),
+                [],
+            )
 
 
 class TestVerifyAdapters(ProviderTestCase):

@@ -11,6 +11,22 @@ None of it is a code problem.
 
 ---
 
+## September 4 cohort: role definition blocks the list
+
+Peter wants five to ten hires similar to Helen at about $3,000 per month.
+Helen passed a team interview and a one-hour work sample. The source does not
+say her role, location, hours, work sample, or why she passed it.
+
+Do not map this cohort to `ops-generalist`. That role is US-only and pays
+$70,000 to $95,000. It describes a different market and a different candidate.
+
+Get the seven missing facts in `SEPTEMBER-2026-LAUNCH.md`. Then add one draft
+role with `ROLE-INTAKE.md`. The infrastructure work can proceed before this:
+Prospeo enrichment, MillionVerifier, the sending mailbox, DNS, warm-up, and
+Calendly. List building cannot.
+
+---
+
 ## The three that block every live send
 
 ### 1. Comp numbers. Set, as assumptions. Peter to correct.

@@ -169,6 +169,9 @@ Comp does not live in the role files, because those are committed. Put it in
 
 ## Read next
 
+- `docs/SEPTEMBER-2026-LAUNCH.md` — the current five-to-ten-hire launch,
+  including the Prospeo and MillionVerifier stack and the missing Helen-role
+  input.
 - `docs/GO-LIVE.md` — **how to get it running for real:** the plain-English
   path from code to a robot that runs itself. Read this if devops is not
   your thing.

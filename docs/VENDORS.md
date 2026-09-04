@@ -49,7 +49,15 @@ for the browser route, whichever provider is configured.
 ### 2. Finding the work email
 
 Run a waterfall, cheapest and most accurate first. Adapters exist for
-Findymail, Apollo and RocketReach.
+Prospeo, Findymail, Apollo and RocketReach. The current recommended first pass
+is Prospeo, followed by MillionVerifier as the separate send-time gate:
+
+    [providers]
+    enrich = "prospeo"
+    verify = "millionverifier"
+
+Prospeo accepts a public LinkedIn URL. It does not need a LinkedIn session
+cookie. This keeps the sourcing account outside the enrichment path.
 
 What to check before you buy, in this order:
 

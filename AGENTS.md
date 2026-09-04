@@ -38,8 +38,11 @@ this code implements.
 
 ## Sending
 
-- Never send from `viewlineventures.com` or `sunbirdsystems.com`. The code
-  blocks both.
+- Never send from `cornerstonegigs.com` or `sunrunlabs.com`. The code blocks
+  both. Peter chose `viewlineventures.com` for FTE outreach on 2026-08-30.
+  Use a dedicated mailbox, keep the volume low, and keep the decision record
+  in the settings. `sunbirdsystems.com` remains a warned domain because the
+  campus channel depends on it.
 - Never connect a real LinkedIn account to a scraper.
 - US only, until someone with authority changes `compliance.allow_countries`
   and can say why. See `docs/COMPLIANCE.md`.

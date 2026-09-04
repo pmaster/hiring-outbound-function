@@ -988,7 +988,7 @@ class TestBookings(unittest.TestCase):
         booking = self.db.query("SELECT * FROM bookings ORDER BY id LIMIT 1")[0]
         result = bookings_mod.decide(
             self.db, self.settings, self.roles, int(booking["id"]), "cancel",
-            reason="not a fit", live=False,
+            reason="not a fit", live=False, force_late=True,
         )
         self.assertEqual(result.counts.get("apology_sent"), 1)
         row = self.db.one("SELECT * FROM bookings WHERE id = ?", (booking["id"],))

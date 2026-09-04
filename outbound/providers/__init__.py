@@ -90,6 +90,7 @@ def build(kind: str, name: str, settings: Any) -> Any:
         manual,
         millionverifier,
         neverbounce,
+        prospeo,
         rocketreach,
         smartlead,
         smtp_sender,
