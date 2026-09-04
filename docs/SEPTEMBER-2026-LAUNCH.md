@@ -3,33 +3,41 @@
 This is the launch path for the next cohort. The target is five to ten hires
 similar to Helen at about $3,000 per month.
 
-## One fact is still missing
+## The Helen role
 
-Do not turn a role live until Peter states what Helen was hired to do and
-where she is based. The current repo has several roles that could fit the
-short description. They have different profiles, tests, laws, and outreach
-copy.
+The September 4 operations discussion settles the broad role. This is not the
+existing US `ops-generalist` role. It is an offshore operations partner paired
+with one or more quants to improve focus, follow-through and process execution,
+and to build bench strength for the done-with-you operating model.
 
-Known:
+Working definition:
 
+- Working title: Operations Partner, Quant Support. Peter can change the public
+  title before the Workable job is published.
 - Target cohort: five to ten hires.
-- Reference candidate: Helen.
-- Reference pay: about $3,000 per month.
-- Helen passed a team interview and a one-hour work sample.
+- Reference candidate: Helen, based in Lviv, Ukraine.
+- Geography: Eastern Europe first, then LATAM if the first source pool is weak.
+- Pay anchor: about $3,000 per month. The operations discussion describes the
+  budget as roughly $20 per hour; these are not exactly the same at full-time
+  hours, so the offer language must use one convention.
+- Hiring process: team interview, then Sunbird's existing one-hour work
+  simulation. Do not build another assessment.
+- Core job: work alongside a quant, keep the day moving, close verification and
+  cash-out follow-ups, notice blockers early, maintain the operating record and
+  compare methods with other operations partners.
 
-Needed:
+Three operating choices remain before the role file can be made live:
 
-- Public role title.
-- Three outcomes the person owns.
-- Country or countries to source.
-- The work sample Helen took.
-- Three reasons Helen passed it.
-- Work hours and time-zone overlap.
-- Contractor or employee status.
+1. Decide whether one partner supports one quant or a small pod, and who manages
+   the partners.
+2. Set the required Eastern-time overlap and confirm contractor versus employee.
+3. Write the first-30-day scorecard. Recommended starting measures are quant
+   focused hours, aged follow-ups closed, preventable execution errors and
+   weekly output versus that quant's pre-pairing baseline.
 
-Use `docs/ROLE-INTAKE.md` once those answers exist. Add a separate role file.
-Do not reuse `ops-generalist`. That role is US-only, pays $70,000 to $95,000,
-and asks for a different person.
+Use `docs/ROLE-INTAKE.md` to record those answers. Add a separate role file;
+do not reuse `ops-generalist` or `quant-program-manager`. Both are US roles at
+materially different pay and scope.
 
 ## Use this stack
 
@@ -39,8 +47,8 @@ and asks for a different person.
 | Find work email | Prospeo | The adapter accepts a public LinkedIn URL or a name plus company. |
 | Verify email | MillionVerifier | Keep this as a separate gate before every send. |
 | Send | SMTP first | This repo already schedules the sequence and stops it on replies. A second sequencer duplicates that work. |
-| Book | Calendly | The company already uses it. Put the role questions on the event as required fields. |
-| Track | This repo, then Workable export | Keep one candidate record and one suppression list. |
+| Book | Existing scheduling path | Keep the first interview short. Do not add a new assessment or scheduling vendor if Workable already handles this. |
+| Track | Workable | Create positive replies as `Sourced` candidates in one job. This repo retains delivery and suppression history only. |
 
 Do not buy Instantly, Smartlead, and ListKit together. They overlap. If inbox
 warm-up becomes the hard part, use one of them for the inboxes and make one
@@ -60,7 +68,7 @@ Then put this provider block in `config/settings.toml`:
     enrich  = "prospeo"
     verify  = "millionverifier"
     send    = "smtp"
-    booking = "calendly"
+    booking = "calendly" # replace only if the existing interview link differs
     replies = "imap"
     enrich_waterfall = ["prospeo", "apollo"]
 
@@ -90,19 +98,30 @@ Never put keys in `settings.toml`.
 
 ## Launch order
 
+As of September 4, `viewlineventures.com` publishes SPF, but Google Public DNS
+returns `NXDOMAIN` for both `_dmarc.viewlineventures.com` and
+`google._domainkey.viewlineventures.com`. DKIM and DMARC are therefore real
+go-live blockers, not checklist hygiene.
+
 1. Define the Helen role. Keep it draft.
 2. Create the dedicated recruiting mailbox.
 3. Fix DKIM and DMARC on the sending domain.
 4. Start the mailbox warm-up.
-5. Create the Calendly event and its required questions.
-6. Put the work sample after the first short screen, unless Peter decides to
-   send candidates to it first.
-7. Build a 50-person pilot list.
-8. Run Prospeo and MillionVerifier. Measure the match rate and bounce risk.
-9. Send five emails per day for the first three days.
-10. Read every reply. Stop if reply rate is under 3% after 60 sends or bounce
+5. Create one Workable job and record its shortcode and `Sourced` stage.
+6. Keep Sunbird's existing interview and one-hour work simulation as the two
+   selection gates. Copy the simulation instructions into Workable; do not
+   rebuild the exercise here.
+7. Connect the positive-reply handoff to Workable. The preferred path is the
+   Workable API with `sourced = true`; a daily ATS CSV import is acceptable for
+   the pilot.
+8. Build a 50-person Ukraine pilot list, beginning with Lviv and expanding only
+   if the profile quality is weak.
+9. Run Prospeo and MillionVerifier. Measure the match rate and bounce risk.
+10. Send five emails per day for the first three days, only after the Ukraine
+    privacy basis and candidate notice have been reviewed.
+11. Read every reply. Stop if reply rate is under 3% after 60 sends or bounce
     rate is over 3%.
-11. Increase the list only after the pilot produces qualified work samples.
+12. Increase the list only after the pilot produces qualified work samples.
 
 ## Do not automate these decisions
 
